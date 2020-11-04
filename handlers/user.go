@@ -1,4 +1,4 @@
-package handler
+package handlers
 
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
@@ -12,10 +12,10 @@ type UserHandler struct {
 	IUserService service.IUserService
 }
 
-func (_self *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (_self *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	//Decode request body
 	userRequest := model.UserRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil{
+	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -26,7 +26,7 @@ func (_self *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if statusCode, err := _self.IsExistedUser(userRequest.Email); err != nil{
+	if statusCode, err := _self.IsExistedUser(userRequest.Email); err != nil {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
@@ -37,7 +37,7 @@ func (_self *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Call service
-	if err := _self.IUserService.Create(userServiceInp); err != nil{
+	if err := _self.IUserService.CreateUser(userServiceInp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +54,7 @@ func (_self *UserHandler) IsExistedUser(email string) (int, error) {
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
-	if existed{
+	if existed {
 		return http.StatusAlreadyReported, errors.New("this email address existed")
 	}
 	return 0, nil
