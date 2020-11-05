@@ -91,6 +91,20 @@ func (_self FriendHandler) GetFriendListByEmail(w http.ResponseWriter, r *http.R
 }
 
 func (_self FriendHandler) GetCommonFriendListByEmails(w http.ResponseWriter, r *http.Request) {
+	//Decode request body
+	friendRequest := model.FriendGetCommonFriendsRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&friendRequest); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//Validation
+	if err := friendRequest.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(friendRequest)
 }
 
 func (_self FriendHandler) CreateFriendValidation(friendConnectionRequest model.FriendConnectionRequest) ([]int, int, error) {
