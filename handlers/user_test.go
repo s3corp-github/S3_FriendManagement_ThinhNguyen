@@ -31,19 +31,19 @@ func TestUserHandler_CreateUser(t *testing.T) {
 		mockCreateUserService  mockCreateUserService
 	}{
 		{
-			name: "Email not valid",
-			requestBody: map[string]interface{}{
-				"Email": "abc",
-			},
-			expectedResponseBody:   "\"email\" is not valid. (ex: \"andy@abc.xyz\")\n",
-			expectedResponseStatus: http.StatusBadRequest,
-		},
-		{
 			name: "Validate request body failed",
 			requestBody: map[string]interface{}{
 				"email": "",
 			},
 			expectedResponseBody:   "\"email\" is required\n",
+			expectedResponseStatus: http.StatusBadRequest,
+		},
+		{
+			name: "Email's format is not valid",
+			requestBody: map[string]interface{}{
+				"Email": "abc",
+			},
+			expectedResponseBody:   "\"email\"'s format is not valid. (ex: \"andy@abc.xyz\")\n",
 			expectedResponseStatus: http.StatusBadRequest,
 		},
 		{

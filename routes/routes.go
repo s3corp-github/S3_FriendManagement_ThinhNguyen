@@ -36,9 +36,14 @@ func CreateRoutes(db *sql.DB) *chi.Mux {
 				IFriendRepo: repositories.FriendRepo{
 					Db: db,
 				},
+				IUserRepo: repositories.UserRepo{
+					Db: db,
+				},
 			},
 		}
 		r.MethodFunc(http.MethodPost, "/", FriendHandler.CreateFriend)
+		r.MethodFunc(http.MethodGet, "/friends", FriendHandler.GetFriendListByEmail)
+		r.MethodFunc(http.MethodGet, "/common-friend", FriendHandler.GetCommonFriendListByEmails)
 	})
 	return r
 }

@@ -53,6 +53,46 @@ func (_self FriendHandler) CreateFriend(w http.ResponseWriter, r *http.Request) 
 	return
 }
 
+func (_self FriendHandler) GetFriendListByEmail(w http.ResponseWriter, r *http.Request) {
+	//Decode request body
+	friendRequest := model.FriendGetFriendListRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&friendRequest); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//Validation
+	if err := friendRequest.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	//Check existed email and get ID by email
+	userID, statusCode, err := _self.GetFriendListValidation(friendRequest.Email)
+	if err != nil {
+		http.Error(w, err.Error(), statusCode)
+		return
+	}
+
+	//Call service
+	friendList, err := _self.IFriendServices.GetFriendListByID(userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//Response
+
+	json.NewEncoder(w).Encode(model.FriendsResponse{
+		Success: true,
+		Friends: friendList,
+		Count:   len(friendList),
+	})
+}
+
+func (_self FriendHandler) GetCommonFriendListByEmails(w http.ResponseWriter, r *http.Request) {
+}
+
 func (_self FriendHandler) CreateFriendValidation(friendConnectionRequest model.FriendConnectionRequest) ([]int, int, error) {
 	//Check first email valid
 	firstUserID, err := _self.IUserService.GetUserIDByEmail(friendConnectionRequest.Friends[0])
@@ -93,4 +133,18 @@ func (_self FriendHandler) CreateFriendValidation(friendConnectionRequest model.
 	}
 
 	return []int{firstUserID, secondUserID}, 0, nil
+}
+
+func (_self FriendHandler) GetFriendListValidation(email string) (int, int, error) {
+	//Check first email valid
+	userID, err := _self.IUserService.GetUserIDByEmail(email)
+
+	if err != nil {
+		return 0, http.StatusInternalServerError, err
+	}
+	if userID == 0 {
+		return 0, http.StatusBadRequest, errors.New("email does not exist")
+	}
+
+	return userID, 0, nil
 }

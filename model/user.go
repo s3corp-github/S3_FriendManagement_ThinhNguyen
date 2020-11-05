@@ -24,7 +24,7 @@ func (_self UserRequest) Validate() error {
 		return errors.New("validate \"email\" format failed")
 	}
 	if !isValid {
-		return errors.New("\"email\" is not valid. (ex: \"andy@abc.xyz\")")
+		return errors.New("\"email\"'s format is not valid. (ex: \"andy@abc.xyz\")")
 	}
 	return nil
 }

@@ -7,6 +7,9 @@ import (
 
 type IFriendRepo interface {
 	CreateFriend(*model.FriendsRepoInput) error
+	GetFriendListByID(int) ([]int, error)
+	GetBlockedListByID(int) ([]int, error)
+	GetBlockingListByID(int) ([]int, error)
 	IsBlockedEachOther(int, int) (bool, error)
 	IsExistedFriend(int, int) (bool, error)
 }
@@ -20,6 +23,81 @@ func (_self FriendRepo) CreateFriend(friendsRepoInput *model.FriendsRepoInput) e
 	_, err := _self.Db.Exec(query, friendsRepoInput.FirstID, friendsRepoInput.SecondID)
 	return err
 }
+
+func (_self FriendRepo) GetFriendListByID(userID int) ([]int, error) {
+	query := `select firstid, secondid from friends where firstid=$1 or secondid = $1`
+
+	var friendListID = make([]int, 0)
+	rows, err := _self.Db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var firstID, secondID int
+		if err := rows.Scan(&firstID, &secondID); err != nil {
+			return nil, err
+		}
+		if firstID == userID {
+			friendListID = append(friendListID, secondID)
+		}
+		if secondID == userID {
+			friendListID = append(friendListID, firstID)
+		}
+	}
+	return friendListID, err
+}
+func (_self FriendRepo) GetBlockingListByID(userID int) ([]int, error) {
+	query := `select targetid from blocks where requestorid = $1`
+
+	var blockedListID = make([]int, 0)
+	rows, err := _self.Db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var blockedUserID int
+		if err := rows.Scan(&blockedUserID); err != nil {
+			return nil, err
+		}
+		blockedListID = append(blockedListID, blockedUserID)
+	}
+	return blockedListID, err
+}
+func (_self FriendRepo) GetBlockedListByID(userID int) ([]int, error) {
+	query := `select requestorid from blocks where targetid = $1`
+
+	var blockingListID = make([]int, 0)
+	rows, err := _self.Db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var blockingUserID int
+		if err := rows.Scan(&blockingUserID); err != nil {
+			return nil, err
+		}
+		blockingListID = append(blockingListID, blockingUserID)
+	}
+	return blockingListID, err
+}
+
+//			 `select email
+//			  from
+//			  (
+//				  select firstid as UserID from friends where secondid = $1
+//				  union
+//				  select secondid as UserID from friends where firstid = $1
+//			  ) userIDs
+//			  join useremails ue on userIDs.UserID = ue.id
+//			  where ue.id not in
+//				  (
+//					  select targetid from blocks where requestorid = $1
+//					  union
+//					  select  requestorid from blocks where targetid = $1
+//				  )`
 
 func (_self FriendRepo) IsBlockedEachOther(firstUserID int, secondUserID int) (bool, error) {
 	query := `select exists(select true from blocks WHERE (
