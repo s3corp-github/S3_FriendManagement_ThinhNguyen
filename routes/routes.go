@@ -45,5 +45,21 @@ func CreateRoutes(db *sql.DB) *chi.Mux {
 		r.MethodFunc(http.MethodGet, "/friends", FriendHandler.GetFriendListByEmail)
 		r.MethodFunc(http.MethodGet, "/common-friend", FriendHandler.GetCommonFriendListByEmails)
 	})
+	//Routes for Subscription
+	r.Route("/subscription", func(r chi.Router) {
+		subscriptionHandler := handlers.SubscriptionHandler{
+			IUserService: service.UserService{
+				IUserRepo: repositories.UserRepo{
+					Db: db,
+				},
+			},
+			ISubscriptionService: service.SubscriptionService{
+				ISubscriptionRepo: repositories.SubscriptionRepo{
+					Db: db,
+				},
+			},
+		}
+		r.MethodFunc(http.MethodPost, "/", subscriptionHandler.CreateSubscription)
+	})
 	return r
 }

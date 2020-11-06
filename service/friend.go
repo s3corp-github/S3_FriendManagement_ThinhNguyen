@@ -7,6 +7,7 @@ import (
 
 type IFriendService interface {
 	CreateFriend(*model.FriendsServiceInput) error
+	GetCommonFriendListByID([]int) ([]string, error)
 	GetFriendListByID(int) ([]string, error)
 	IsBlockedEachOther(int, int) (bool, error)
 	IsExistedFriend(int, int) (bool, error)
@@ -77,4 +78,30 @@ func (_self FriendService) IsBlockedEachOther(firstUserID int, secondUserID int)
 func (_self FriendService) IsExistedFriend(firstUserID int, secondUserID int) (bool, error) {
 	existed, err := _self.IFriendRepo.IsExistedFriend(firstUserID, secondUserID)
 	return existed, err
+}
+
+func (_self FriendService) GetCommonFriendListByID(userIDList []int) ([]string, error) {
+	firstFriendList, err := _self.GetFriendListByID(userIDList[0])
+	if err != nil {
+		return nil, err
+	}
+	secondFriendList, err := _self.GetFriendListByID(userIDList[1])
+	if err != nil {
+		return nil, err
+	}
+
+	//Get common friends
+	commonFriendList := make([]string, 0)
+	commonMap := make(map[string]bool)
+	for _, firstEmail := range firstFriendList {
+		commonMap[firstEmail] = true
+	}
+
+	for _, secondEmail := range secondFriendList {
+		if _, ok := commonMap[secondEmail]; ok {
+			commonFriendList = append(commonFriendList, secondEmail)
+		}
+	}
+
+	return commonFriendList, nil
 }

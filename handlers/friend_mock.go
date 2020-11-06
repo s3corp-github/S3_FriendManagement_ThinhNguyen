@@ -47,3 +47,13 @@ func (_self mockFriendService) GetFriendListByID(userID int) ([]string, error) {
 	}
 	return r0, r1
 }
+
+func (_self mockFriendService) GetCommonFriendListByID(userIDList []int) ([]string, error) {
+	args := _self.Called(userIDList)
+	r0 := args.Get(0).([]string)
+	var r1 error
+	if args.Get(1) != nil {
+		r1 = args.Get(1).(error)
+	}
+	return r0, r1
+}

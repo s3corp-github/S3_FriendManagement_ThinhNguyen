@@ -531,3 +531,239 @@ func TestFriendHandler_GetFriendListByEmail(t *testing.T) {
 		})
 	}
 }
+
+func TestFriendHandler_GetCommonFriendListByEmails(t *testing.T) {
+	type mockGetUserIDByEmail struct {
+		input  string
+		result int
+		err    error
+	}
+	type mockGetCommonFriendList struct {
+		input  []int
+		result []string
+		err    error
+	}
+	testCases := []struct {
+		name                       string
+		requestBody                map[string]interface{}
+		expectedResponseBody       string
+		expectedStatus             int
+		mockGetFirstUserIDByEmail  mockGetUserIDByEmail
+		mockGetSecondUserIDByEmail mockGetUserIDByEmail
+		mockGetCommonFriendList    mockGetCommonFriendList
+	}{
+		{
+			name: "Validate request body failed",
+			requestBody: map[string]interface{}{
+				"friends": "././",
+			},
+			expectedResponseBody: "json: cannot unmarshal string into Go struct field FriendGetCommonFriendsRequest.friends of type []string\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "No data request body",
+			requestBody: map[string]interface{}{
+				"": "",
+			},
+			expectedResponseBody: "\"friends\" is required\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "Not enough email",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc",
+				},
+			},
+			expectedResponseBody: "needs exactly two email addresses\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "First email format invalid",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc",
+					"xyz",
+				},
+			},
+			expectedResponseBody: "first \"email\" is not valid. (ex: \"andy@abc.xyz\")\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "Second email format invalid",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz",
+				},
+			},
+			expectedResponseBody: "second \"email\" is not valid. (ex: \"andy@abc.xyz\")\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "Get UserID by email failed with error",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz@gmail.com",
+				},
+			},
+			expectedResponseBody: "get userID failed with error\n",
+			expectedStatus:       http.StatusInternalServerError,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 0,
+				err:    errors.New("get userID failed with error"),
+			},
+		},
+		{
+			name: "First email is not exist",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz@gmail.com",
+				},
+			},
+			expectedResponseBody: "first email does not exist\n",
+			expectedStatus:       http.StatusBadRequest,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 0,
+				err:    nil,
+			},
+			mockGetCommonFriendList: mockGetCommonFriendList{},
+		},
+		{
+			name: "Second email is not exist",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz@gmail.com",
+				},
+			},
+			expectedResponseBody: "second email does not exist\n",
+			expectedStatus:       http.StatusBadRequest,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetSecondUserIDByEmail: mockGetUserIDByEmail{
+				input:  "xyz@gmail.com",
+				result: 0,
+				err:    nil,
+			},
+		},
+		{
+			name: "Two email must different each other",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"abc@gmail.com",
+				},
+			},
+			expectedResponseBody: "two email addresses must be different\n",
+			expectedStatus:       http.StatusBadRequest,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetSecondUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 10,
+				err:    nil,
+			},
+		},
+		{
+			name: "Get common friend list failed with error",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz@gmail.com",
+				},
+			},
+			expectedResponseBody: "get common friend list failed with error\n",
+			expectedStatus:       http.StatusInternalServerError,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetSecondUserIDByEmail: mockGetUserIDByEmail{
+				input:  "xyz@gmail.com",
+				result: 11,
+				err:    nil,
+			},
+			mockGetCommonFriendList: mockGetCommonFriendList{
+				input:  []int{10, 11},
+				result: nil,
+				err:    errors.New("get common friend list failed with error"),
+			},
+		},
+		{
+			name: "Get Success",
+			requestBody: map[string]interface{}{
+				"friends": []string{
+					"abc@gmail.com",
+					"xyz@gmail.com",
+				},
+			},
+			expectedResponseBody: "{\"success\":true,\"friends\":[\"abc@xyz.com\",\"xyz@abc.com\"],\"count\":2}\n",
+			expectedStatus:       http.StatusOK,
+			mockGetFirstUserIDByEmail: mockGetUserIDByEmail{
+				input:  "abc@gmail.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetSecondUserIDByEmail: mockGetUserIDByEmail{
+				input:  "xyz@gmail.com",
+				result: 11,
+				err:    nil,
+			},
+			mockGetCommonFriendList: mockGetCommonFriendList{
+				input: []int{10, 11},
+				result: []string{
+					"abc@xyz.com",
+					"xyz@abc.com",
+				},
+				err: nil,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			//Given
+			mockUserService := new(mockUserService)
+			mockFriendService := new(mockFriendService)
+
+			mockUserService.On("GetUserIDByEmail", testCase.mockGetFirstUserIDByEmail.input).
+				Return(testCase.mockGetFirstUserIDByEmail.result, testCase.mockGetFirstUserIDByEmail.err)
+			mockUserService.On("GetUserIDByEmail", testCase.mockGetSecondUserIDByEmail.input).
+				Return(testCase.mockGetSecondUserIDByEmail.result, testCase.mockGetSecondUserIDByEmail.err)
+
+			mockFriendService.On("GetCommonFriendListByID", testCase.mockGetCommonFriendList.input).
+				Return(testCase.mockGetCommonFriendList.result, testCase.mockGetCommonFriendList.err)
+
+			handlers := FriendHandler{
+				IUserService:    mockUserService,
+				IFriendServices: mockFriendService,
+			}
+
+			requestBody, err := json.Marshal(testCase.requestBody)
+			if err != nil {
+				t.Error(err)
+			}
+			//When
+			req, err := http.NewRequest(http.MethodGet, "/friend/common-friend", bytes.NewBuffer(requestBody))
+
+			responseRecorder := httptest.NewRecorder()
+			handler := http.HandlerFunc(handlers.GetCommonFriendListByEmails)
+			handler.ServeHTTP(responseRecorder, req)
+
+			//Then
+			require.Equal(t, testCase.expectedStatus, responseRecorder.Code)
+			require.Equal(t, testCase.expectedResponseBody, responseRecorder.Body.String())
+		})
+	}
+}
