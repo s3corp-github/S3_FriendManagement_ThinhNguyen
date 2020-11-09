@@ -8,8 +8,8 @@ import (
 )
 
 type IUserRepo interface {
-	IsExistedUser(string) (bool, error)
 	CreateUser(*model.UserRepoInput) error
+	IsExistedUser(string) (bool, error)
 	GetUserIDByEmail(string) (int, error)
 	GetEmailListByIDs(userIDs []int) ([]string, error)
 }
