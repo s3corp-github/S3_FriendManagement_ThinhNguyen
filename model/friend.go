@@ -98,6 +98,33 @@ type FriendsResponse struct {
 	Count   int      `json:"count"`
 }
 
+type GetEmailReceiveUpdateResponse struct {
+	Success    bool     `json:"success"`
+	Recipients []string `json:"recipients"`
+}
+
+type EmailReceiveUpdateRequest struct {
+	Sender string `json:"sender"`
+	Text   string `json:"text"`
+}
+
+func (_self EmailReceiveUpdateRequest) Validate() error {
+	if _self.Sender == "" {
+		return errors.New("\"sender\" is required")
+	}
+	if _self.Text == "" {
+		return errors.New("\"text\" is required")
+	}
+	isValidEmail, err := utils.IsValidEmail(_self.Sender)
+	if err != nil {
+		return errors.New("validate \"sender\" format failed")
+	}
+	if !isValidEmail {
+		return errors.New("\"sender\" is not valid. (ex: \"andy@abc.xyz\")")
+	}
+	return nil
+}
+
 //Service model
 type FriendsServiceInput struct {
 	FirstID  int `json:"first_id"`

@@ -73,11 +73,11 @@ func TestUserHandler_CreateUser(t *testing.T) {
 			},
 		},
 		{
-			name: "Call service return with error",
+			name: "Call services return with error",
 			requestBody: map[string]interface{}{
 				"email": "abc@xyz.com",
 			},
-			expectedResponseBody:   "service error\n",
+			expectedResponseBody:   "services error\n",
 			expectedResponseStatus: http.StatusInternalServerError,
 			mockIsUserExisted: mockIsUserExisted{
 				input:  "abc@xyz.com",
@@ -88,7 +88,7 @@ func TestUserHandler_CreateUser(t *testing.T) {
 				input: &model.UserServiceInput{
 					Email: "abc@xyz.com",
 				},
-				err: errors.New("service error"),
+				err: errors.New("services error"),
 			},
 		},
 		{

@@ -11,24 +11,19 @@ import (
 	"testing"
 )
 
-func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
+func TestBlockHandler_CreateBlocking(t *testing.T) {
 	type mockGetUserIDByEmail struct {
 		input  string
 		result int
 		err    error
 	}
-	type mockIsExistedSubscription struct {
+	type mockIsBlockedEachOther struct {
 		input  []int
 		result bool
 		err    error
 	}
-	type mockIsBlocked struct {
-		input  []int
-		result bool
-		err    error
-	}
-	type mockCreateSubscription struct {
-		input *model.SubscriptionServiceInput
+	type mockCreateBlockingService struct {
+		input *model.BlockingServiceInput
 		err   error
 	}
 	testCases := []struct {
@@ -38,9 +33,8 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 		expectedStatus            int
 		mockGetRequestorUserID    mockGetUserIDByEmail
 		mockGetTargetUserID       mockGetUserIDByEmail
-		mockIsExistedSubscription mockIsExistedSubscription
-		mockIsBlocked             mockIsBlocked
-		mockCreateSubscription    mockCreateSubscription
+		mockIsBlocked             mockIsBlockedEachOther
+		mockCreateBlockingService mockCreateBlockingService
 	}{
 		{
 			name: "Body no data",
@@ -124,7 +118,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				"requestor": "abc@xyz.com",
 				"target":    "xyz@abc.com",
 			},
-			expectedResponseBody: "requestor email does not exist\n",
+			expectedResponseBody: "the requestor does not exist\n",
 			expectedStatus:       http.StatusBadRequest,
 			mockGetRequestorUserID: mockGetUserIDByEmail{
 				input:  "abc@xyz.com",
@@ -138,7 +132,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				"requestor": "abc@xyz.com",
 				"target":    "xyz@abc.com",
 			},
-			expectedResponseBody: "target email does not exist\n",
+			expectedResponseBody: "the target does not exist\n",
 			expectedStatus:       http.StatusBadRequest,
 			mockGetRequestorUserID: mockGetUserIDByEmail{
 				input:  "abc@xyz.com",
@@ -152,7 +146,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 			},
 		},
 		{
-			name: "Check exist subscription failed with error",
+			name: "Check exist blocking failed with error",
 			requestBody: map[string]interface{}{
 				"requestor": "abc@xyz.com",
 				"target":    "xyz@abc.com",
@@ -169,72 +163,19 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				result: 11,
 				err:    nil,
 			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
+			mockIsBlocked: mockIsBlockedEachOther{
 				input:  []int{10, 11},
 				result: false,
 				err:    errors.New("failed with error"),
 			},
 		},
 		{
-			name: "Existed subscription",
+			name: "Existed blocking",
 			requestBody: map[string]interface{}{
 				"requestor": "abc@xyz.com",
 				"target":    "xyz@abc.com",
 			},
-			expectedResponseBody: "those email address have already subscribed the each other\n",
-			expectedStatus:       http.StatusAlreadyReported,
-			mockGetRequestorUserID: mockGetUserIDByEmail{
-				input:  "abc@xyz.com",
-				result: 10,
-				err:    nil,
-			},
-			mockGetTargetUserID: mockGetUserIDByEmail{
-				input:  "xyz@abc.com",
-				result: 11,
-				err:    nil,
-			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
-				input:  []int{10, 11},
-				result: true,
-				err:    nil,
-			},
-		},
-		{
-			name: "Check is blocked by each other failed with error",
-			requestBody: map[string]interface{}{
-				"requestor": "abc@xyz.com",
-				"target":    "xyz@abc.com",
-			},
-			expectedResponseBody: "failed with error\n",
-			expectedStatus:       http.StatusInternalServerError,
-			mockGetRequestorUserID: mockGetUserIDByEmail{
-				input:  "abc@xyz.com",
-				result: 10,
-				err:    nil,
-			},
-			mockGetTargetUserID: mockGetUserIDByEmail{
-				input:  "xyz@abc.com",
-				result: 11,
-				err:    nil,
-			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
-				input:  []int{10, 11},
-				result: false,
-				err:    nil,
-			},
-			mockIsBlocked: mockIsBlocked{
-				input:  []int{10, 11},
-				result: false,
-				err:    errors.New("failed with error"),
-			},
-		},
-		{
-			name: "Is Blocked by each other",
-			requestBody: map[string]interface{}{
-				"requestor": "abc@xyz.com",
-				"target":    "xyz@abc.com",
-			},
-			expectedResponseBody: "those emails have already been blocked by the each other\n",
+			expectedResponseBody: "target's email have already been blocked by requestor's email\n",
 			expectedStatus:       http.StatusPreconditionFailed,
 			mockGetRequestorUserID: mockGetUserIDByEmail{
 				input:  "abc@xyz.com",
@@ -246,12 +187,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				result: 11,
 				err:    nil,
 			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
-				input:  []int{10, 11},
-				result: false,
-				err:    nil,
-			},
-			mockIsBlocked: mockIsBlocked{
+			mockIsBlocked: mockIsBlockedEachOther{
 				input:  []int{10, 11},
 				result: true,
 				err:    nil,
@@ -263,7 +199,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				"requestor": "abc@xyz.com",
 				"target":    "xyz@abc.com",
 			},
-			expectedResponseBody: "failed with error\n",
+			expectedResponseBody: "create blocking failed with error\n",
 			expectedStatus:       http.StatusInternalServerError,
 			mockGetRequestorUserID: mockGetUserIDByEmail{
 				input:  "abc@xyz.com",
@@ -275,22 +211,17 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				result: 11,
 				err:    nil,
 			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
+			mockIsBlocked: mockIsBlockedEachOther{
 				input:  []int{10, 11},
 				result: false,
 				err:    nil,
 			},
-			mockIsBlocked: mockIsBlocked{
-				input:  []int{10, 11},
-				result: false,
-				err:    nil,
-			},
-			mockCreateSubscription: mockCreateSubscription{
-				input: &model.SubscriptionServiceInput{
+			mockCreateBlockingService: mockCreateBlockingService{
+				input: &model.BlockingServiceInput{
 					Requestor: 10,
 					Target:    11,
 				},
-				err: errors.New("failed with error"),
+				err: errors.New("create blocking failed with error"),
 			},
 		},
 		{
@@ -311,18 +242,13 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 				result: 11,
 				err:    nil,
 			},
-			mockIsExistedSubscription: mockIsExistedSubscription{
+			mockIsBlocked: mockIsBlockedEachOther{
 				input:  []int{10, 11},
 				result: false,
 				err:    nil,
 			},
-			mockIsBlocked: mockIsBlocked{
-				input:  []int{10, 11},
-				result: false,
-				err:    nil,
-			},
-			mockCreateSubscription: mockCreateSubscription{
-				input: &model.SubscriptionServiceInput{
+			mockCreateBlockingService: mockCreateBlockingService{
+				input: &model.BlockingServiceInput{
 					Requestor: 10,
 					Target:    11,
 				},
@@ -334,43 +260,41 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			//Given
 			mockUserService := new(mockUserService)
-			mockSubscriptionService := new(mockSubscriptionService)
+			mockBlockingService := new(mockBlockingService)
 
 			mockUserService.On("GetUserIDByEmail", testCase.mockGetRequestorUserID.input).
 				Return(testCase.mockGetRequestorUserID.result, testCase.mockGetRequestorUserID.err)
 			mockUserService.On("GetUserIDByEmail", testCase.mockGetTargetUserID.input).
 				Return(testCase.mockGetTargetUserID.result, testCase.mockGetTargetUserID.err)
-			if testCase.mockIsExistedSubscription.input != nil {
-				mockSubscriptionService.On("IsExistedSubscription", testCase.mockIsExistedSubscription.input[0], testCase.mockIsExistedSubscription.input[1]).
-					Return(testCase.mockIsExistedSubscription.result, testCase.mockIsExistedSubscription.err)
-			}
+
 			if testCase.mockIsBlocked.input != nil {
-				mockSubscriptionService.On("IsBlockedByOtherEmail", testCase.mockIsBlocked.input[0], testCase.mockIsBlocked.input[1]).
+				mockBlockingService.On("IsExistedBlocking", testCase.mockIsBlocked.input[0], testCase.mockIsBlocked.input[1]).
 					Return(testCase.mockIsBlocked.result, testCase.mockIsBlocked.err)
 			}
-			mockSubscriptionService.On("CreateSubscription", testCase.mockCreateSubscription.input).
-				Return(testCase.mockCreateSubscription.err)
+			mockBlockingService.On("CreateBlocking", testCase.mockCreateBlockingService.input).
+				Return(testCase.mockCreateBlockingService.err)
 
-			handlers := SubscriptionHandler{
-				IUserService:         mockUserService,
-				ISubscriptionService: mockSubscriptionService,
+			handlers := BlockHandler{
+				IUserService:     mockUserService,
+				IBlockingService: mockBlockingService,
 			}
 
 			requestBody, err := json.Marshal(testCase.requestBody)
 			if err != nil {
 				t.Error(err)
 			}
+
 			//When
-			req, err := http.NewRequest(http.MethodPost, "/subscription", bytes.NewBuffer(requestBody))
+			req, err := http.NewRequest(http.MethodPost, "/block", bytes.NewBuffer(requestBody))
 			if err != nil {
 				t.Error(err)
 			}
 
 			responseRecorder := httptest.NewRecorder()
-			handler := http.HandlerFunc(handlers.CreateSubscription)
+			handler := http.HandlerFunc(handlers.CreateBlocking)
 			handler.ServeHTTP(responseRecorder, req)
 
-			// Then
+			//Then
 			require.Equal(t, testCase.expectedStatus, responseRecorder.Code)
 			require.Equal(t, testCase.expectedResponseBody, responseRecorder.Body.String())
 		})

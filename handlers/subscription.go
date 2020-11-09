@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/service"
+	"S3_FriendManagement_ThinhNguyen/services"
 	"encoding/json"
 	"errors"
 	"net/http"
 )
 
 type SubscriptionHandler struct {
-	IUserService         service.IUserService
-	ISubscriptionService service.ISubscriptionService
+	IUserService         services.IUserService
+	ISubscriptionService services.ISubscriptionService
 }
 
 func (_self SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
@@ -33,12 +33,12 @@ func (_self SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *ht
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
-	//Create input service model
+	//Create input services model
 	modelServiceInput := &model.SubscriptionServiceInput{
 		Requestor: userIDList[0],
 		Target:    userIDList[1],
 	}
-	//Call service
+	//Call services
 	if err := _self.ISubscriptionService.CreateSubscription(modelServiceInput); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"S3_FriendManagement_ThinhNguyen/model"

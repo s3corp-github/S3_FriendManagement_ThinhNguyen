@@ -10,8 +10,9 @@ type IFriendRepo interface {
 	GetFriendListByID(int) ([]int, error)
 	GetBlockedListByID(int) ([]int, error)
 	GetBlockingListByID(int) ([]int, error)
-	IsBlockedEachOther(int, int) (bool, error)
+	IsBlockedByOtherEmail(int, int) (bool, error)
 	IsExistedFriend(int, int) (bool, error)
+	GetSubscriberList(int) ([]int, error)
 }
 
 type FriendRepo struct {
@@ -23,7 +24,6 @@ func (_self FriendRepo) CreateFriend(friendsRepoInput *model.FriendsRepoInput) e
 	_, err := _self.Db.Exec(query, friendsRepoInput.FirstID, friendsRepoInput.SecondID)
 	return err
 }
-
 func (_self FriendRepo) GetFriendListByID(userID int) ([]int, error) {
 	query := `select firstid, secondid from friends where firstid=$1 or secondid = $1`
 
@@ -83,23 +83,7 @@ func (_self FriendRepo) GetBlockedListByID(userID int) ([]int, error) {
 	}
 	return blockingListID, err
 }
-
-//			 `select email
-//			  from
-//			  (
-//				  select firstid as UserID from friends where secondid = $1
-//				  union
-//				  select secondid as UserID from friends where firstid = $1
-//			  ) userIDs
-//			  join useremails ue on userIDs.UserID = ue.id
-//			  where ue.id not in
-//				  (
-//					  select targetid from blocks where requestorid = $1
-//					  union
-//					  select  requestorid from blocks where targetid = $1
-//				  )`
-
-func (_self FriendRepo) IsBlockedEachOther(firstUserID int, secondUserID int) (bool, error) {
+func (_self FriendRepo) IsBlockedByOtherEmail(firstUserID int, secondUserID int) (bool, error) {
 	query := `select exists(select true from blocks WHERE (
     						    	requestorid in ($1, $2) 
 								    AND 
@@ -115,7 +99,6 @@ func (_self FriendRepo) IsBlockedEachOther(firstUserID int, secondUserID int) (b
 	}
 	return false, nil
 }
-
 func (_self FriendRepo) IsExistedFriend(firstUserID int, secondUserID int) (bool, error) {
 	query := `select exists(
     						select true 
@@ -135,4 +118,20 @@ func (_self FriendRepo) IsExistedFriend(firstUserID int, secondUserID int) (bool
 		return true, nil
 	}
 	return false, nil
+}
+func (_self FriendRepo) GetSubscriberList(userID int) ([]int, error) {
+	query := `select requestorid from subscriptions where targetid=$1`
+	subscribers := make([]int, 0)
+	rows, err := _self.Db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		subscribers = append(subscribers, id)
+	}
+	return subscribers, nil
 }

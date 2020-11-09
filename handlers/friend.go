@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/service"
+	"S3_FriendManagement_ThinhNguyen/services"
+	"S3_FriendManagement_ThinhNguyen/utils"
 	"encoding/json"
 	"errors"
 	"net/http"
 )
 
 type FriendHandler struct {
-	IUserService    service.IUserService
-	IFriendServices service.IFriendService
+	IUserService    services.IUserService
+	IFriendServices services.IFriendService
 }
 
 func (_self FriendHandler) CreateFriend(w http.ResponseWriter, r *http.Request) {
@@ -34,13 +35,13 @@ func (_self FriendHandler) CreateFriend(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	//Model UserIDs service input
+	//Model UserIDs services input
 	friendsInputModel := &model.FriendsServiceInput{
 		FirstID:  IDs[0],
 		SecondID: IDs[1],
 	}
 
-	//Call service to create friend connection
+	//Call services to create friend connection
 	if err := _self.IFriendServices.CreateFriend(friendsInputModel); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -74,7 +75,7 @@ func (_self FriendHandler) GetFriendListByEmail(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	//Call service
+	//Call services
 	friendList, err := _self.IFriendServices.GetFriendListByID(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -111,7 +112,7 @@ func (_self FriendHandler) GetCommonFriendListByEmails(w http.ResponseWriter, r 
 		return
 	}
 
-	//Call service
+	//Call services
 	friendList, err := _self.IFriendServices.GetCommonFriendListByID(userIDList)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -177,7 +178,7 @@ func (_self FriendHandler) CreateFriendValidation(friendConnectionRequest model.
 	}
 
 	//check blocking between 2 emails
-	blocked, err := _self.IFriendServices.IsBlockedEachOther(firstUserID, secondUserID)
+	blocked, err := _self.IFriendServices.IsBlockedByOtherEmail(firstUserID, secondUserID)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
@@ -200,4 +201,71 @@ func (_self FriendHandler) GetFriendListValidation(email string) (int, int, erro
 	}
 
 	return userID, 0, nil
+}
+
+func (_self FriendHandler) GetEmailsReceiveUpdate(w http.ResponseWriter, r *http.Request) {
+	//decode request body
+	emailReceiveUpdateRequest := model.EmailReceiveUpdateRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&emailReceiveUpdateRequest); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Validate request body
+	if err := emailReceiveUpdateRequest.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check existed email and get userID
+	senderID, mentionedEmails, statusCode, err := _self.GetEmailsReceiveUpdateValidation(emailReceiveUpdateRequest.Sender, emailReceiveUpdateRequest.Text)
+	if err != nil {
+		http.Error(w, err.Error(), statusCode)
+		return
+	}
+
+	//Call services
+	recipientList, err := _self.IFriendServices.GetEmailsReceiveUpdate(senderID, mentionedEmails)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//Response
+	// Response
+	json.NewEncoder(w).Encode(model.GetEmailReceiveUpdateResponse{
+		Success:    true,
+		Recipients: recipientList,
+	})
+	return
+
+}
+
+func (_self FriendHandler) GetEmailsReceiveUpdateValidation(email string, text string) (int, []string, int, error) {
+	userID, err := _self.IUserService.GetUserIDByEmail(email)
+	if err != nil {
+		return 0, nil, http.StatusInternalServerError, err
+	}
+	if userID == 0 {
+		return 0, nil, http.StatusBadRequest, errors.New("the sender does not exist")
+	}
+
+	//Email @mentioned
+	emailListFromText := utils.FindEmailFromText(text)
+	var emailListValidFromText []string
+	for _, emailFromText := range emailListFromText {
+		emailFromTextUserID, err := _self.IUserService.GetUserIDByEmail(emailFromText)
+		if err != nil {
+			return 0, nil, http.StatusInternalServerError, err
+		}
+		if emailFromTextUserID == 0 {
+			return 0, nil, http.StatusBadRequest, errors.New("Email address \"" + emailFromText + "\" not existed")
+		}
+		//Remove sender from text
+		if emailFromText != email {
+			emailListValidFromText = append(emailListValidFromText, emailFromText)
+		}
+	}
+
+	return userID, emailListValidFromText, 0, nil
 }

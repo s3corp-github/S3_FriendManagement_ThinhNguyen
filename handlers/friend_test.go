@@ -363,7 +363,7 @@ func TestFriendHandler_CreateFriend(t *testing.T) {
 					Return(testCase.mockIsExistedFriend.result, testCase.mockIsExistedFriend.err)
 			}
 			if testCase.mockIsBlocked.input != nil {
-				mockFriendService.On("IsBlockedEachOther", testCase.mockIsBlocked.input[0], testCase.mockIsBlocked.input[1]).
+				mockFriendService.On("IsBlockedByOtherEmail", testCase.mockIsBlocked.input[0], testCase.mockIsBlocked.input[1]).
 					Return(testCase.mockIsBlocked.result, testCase.mockIsBlocked.err)
 			}
 
@@ -765,5 +765,185 @@ func TestFriendHandler_GetCommonFriendListByEmails(t *testing.T) {
 			require.Equal(t, testCase.expectedStatus, responseRecorder.Code)
 			require.Equal(t, testCase.expectedResponseBody, responseRecorder.Body.String())
 		})
+	}
+}
+
+func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
+	type mockGetUserIDByEmail struct {
+		input  string
+		result int
+		err    error
+	}
+	type mockGetEmailsReceiveUpdate struct {
+		sender          int
+		mentionedEmails []string
+		result          []string
+		err             error
+	}
+	testCases := []struct {
+		name                       string
+		requestBody                map[string]interface{}
+		expectedResponseBody       string
+		expectedStatus             int
+		mockGetSenderUserID        mockGetUserIDByEmail
+		mockGetMentionedUserID     []mockGetUserIDByEmail
+		mockGetEmailsReceiveUpdate mockGetEmailsReceiveUpdate
+	}{
+		{
+			name: "decode request body failed",
+			requestBody: map[string]interface{}{
+				"sender": 1,
+			},
+			expectedResponseBody: "json: cannot unmarshal number into Go struct field EmailReceiveUpdateRequest.sender of type string\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "Body no data",
+			requestBody: map[string]interface{}{
+				"": "",
+			},
+			expectedResponseBody: "\"sender\" is required\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "No text",
+			requestBody: map[string]interface{}{
+				"sender": "abc@xyz.com",
+			},
+			expectedResponseBody: "\"text\" is required\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "sender email is invalid",
+			requestBody: map[string]interface{}{
+				"sender": "abc",
+				"text":   "abc",
+			},
+			expectedResponseBody: "\"sender\" is not valid. (ex: \"andy@abc.xyz\")\n",
+			expectedStatus:       http.StatusBadRequest,
+		},
+		{
+			name: "Not existed userID from text",
+			requestBody: map[string]interface{}{
+				"sender": "abc@xyz.com",
+				"text":   "hello ! abc@xyz.com lmk@xyz.com",
+			},
+			expectedResponseBody: "Email address \"lmk@xyz.com\" not existed\n",
+			expectedStatus:       http.StatusBadRequest,
+			mockGetSenderUserID: mockGetUserIDByEmail{
+				input:  "abc@xyz.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetMentionedUserID: []mockGetUserIDByEmail{
+				{
+					input:  "abc@xyz.com",
+					result: 10,
+					err:    nil,
+				},
+				{
+					input:  "lmk@xyz.com",
+					result: 0,
+					err:    nil,
+				},
+			},
+		},
+		{
+			name: "Get email list receive updates failed with error",
+			requestBody: map[string]interface{}{
+				"sender": "abc@xyz.com",
+				"text":   "hello ! lmk@xyz.com",
+			},
+			expectedResponseBody: "failed with error\n",
+			expectedStatus:       http.StatusInternalServerError,
+			mockGetSenderUserID: mockGetUserIDByEmail{
+				input:  "abc@xyz.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetMentionedUserID: []mockGetUserIDByEmail{
+				{
+					input:  "lmk@xyz.com",
+					result: 100,
+					err:    nil,
+				},
+			},
+			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
+				sender:          10,
+				mentionedEmails: []string{"lmk@xyz.com"},
+				result:          nil,
+				err:             errors.New("failed with error"),
+			},
+		},
+		{
+			name: "Get success",
+			requestBody: map[string]interface{}{
+				"sender": "abc@xyz.com",
+				"text":   "hello ! lmk@xyz.com",
+			},
+			expectedResponseBody: "{\"success\":true,\"recipients\":[\"xyz@gmail.com\",\"lmk@xyz.com\"]}\n",
+			expectedStatus:       http.StatusOK,
+			mockGetSenderUserID: mockGetUserIDByEmail{
+				input:  "abc@xyz.com",
+				result: 10,
+				err:    nil,
+			},
+			mockGetMentionedUserID: []mockGetUserIDByEmail{
+				{
+					input:  "lmk@xyz.com",
+					result: 100,
+					err:    nil,
+				},
+			},
+			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
+				sender:          10,
+				mentionedEmails: []string{"lmk@xyz.com"},
+				result:          []string{"xyz@gmail.com", "lmk@xyz.com"},
+				err:             nil,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Given
+			mockFriendService := new(mockFriendService)
+			mockUserService := new(mockUserService)
+
+			mockUserService.On("GetUserIDByEmail", testCase.mockGetSenderUserID.input).
+				Return(testCase.mockGetSenderUserID.result, testCase.mockGetSenderUserID.err)
+
+			for index, _ := range testCase.mockGetMentionedUserID {
+				mockUserService.On("GetUserIDByEmail", testCase.mockGetMentionedUserID[index].input).
+					Return(testCase.mockGetMentionedUserID[index].result, testCase.mockGetMentionedUserID[index].err)
+			}
+			mockFriendService.On("GetEmailsReceiveUpdate",
+				testCase.mockGetEmailsReceiveUpdate.sender, testCase.mockGetEmailsReceiveUpdate.mentionedEmails).
+				Return(testCase.mockGetEmailsReceiveUpdate.result, testCase.mockGetEmailsReceiveUpdate.err)
+
+			handlers := FriendHandler{
+				IUserService:    mockUserService,
+				IFriendServices: mockFriendService,
+			}
+
+			requestBody, err := json.Marshal(testCase.requestBody)
+			if err != nil {
+				t.Error(err)
+			}
+
+			// When
+			req, err := http.NewRequest(http.MethodGet, "/friends/emails-receiving-update", bytes.NewBuffer(requestBody))
+			if err != nil {
+				t.Error(err)
+			}
+			responseRecorder := httptest.NewRecorder()
+			handler := http.HandlerFunc(handlers.GetEmailsReceiveUpdate)
+			handler.ServeHTTP(responseRecorder, req)
+
+			// Then
+			require.Equal(t, testCase.expectedStatus, responseRecorder.Code)
+			require.Equal(t, testCase.expectedResponseBody, responseRecorder.Body.String())
+
+		})
+
 	}
 }

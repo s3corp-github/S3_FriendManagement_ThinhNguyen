@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/service"
+	"S3_FriendManagement_ThinhNguyen/services"
 	"encoding/json"
 	"errors"
 	"net/http"
 )
 
 type UserHandler struct {
-	IUserService service.IUserService
+	IUserService services.IUserService
 }
 
 func (_self *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -31,12 +31,12 @@ func (_self *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Convert to service input model
+	//Convert to services input model
 	userServiceInp := &model.UserServiceInput{
 		Email: userRequest.Email,
 	}
 
-	//Call service
+	//Call services
 	if err := _self.IUserService.CreateUser(userServiceInp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func (_self *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (_self *UserHandler) IsExistedUser(email string) (int, error) {
-	//Call service
+	//Call services
 	existed, err := _self.IUserService.IsExistedUser(email)
 	if err != nil {
 		return http.StatusInternalServerError, err

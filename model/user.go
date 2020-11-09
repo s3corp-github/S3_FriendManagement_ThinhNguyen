@@ -33,7 +33,7 @@ type SuccessResponse struct {
 	Success bool `json:"Success"`
 }
 
-//model service
+//model services
 type UserServiceInput struct {
 	Email string `json:"email"`
 }
