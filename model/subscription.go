@@ -1,8 +1,9 @@
 package model
 
 import (
-	"S3_FriendManagement_ThinhNguyen/utils"
 	"errors"
+
+	"S3_FriendManagement_ThinhNguyen/utils"
 )
 
 type CreateSubscriptionRequest struct {
