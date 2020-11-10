@@ -1,5 +1,0 @@
-truncate table useremails;
-alter sequence useremails_id_seq RESTART WITH 1;
-
---insert
-insert into useremails(email) values ('abc@xyz.com')

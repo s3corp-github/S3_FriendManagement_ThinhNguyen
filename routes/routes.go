@@ -43,7 +43,7 @@ func CreateRoutes(db *sql.DB) *chi.Mux {
 		}
 		r.MethodFunc(http.MethodPost, "/", FriendHandler.CreateFriend)
 		r.MethodFunc(http.MethodGet, "/friends", FriendHandler.GetFriendListByEmail)
-		r.MethodFunc(http.MethodGet, "/common-friend", FriendHandler.GetCommonFriendListByEmails)
+		r.MethodFunc(http.MethodGet, "/common-friends", FriendHandler.GetCommonFriendListByEmails)
 		r.MethodFunc(http.MethodGet, "/emails-receive-update", FriendHandler.GetEmailsReceiveUpdate)
 	})
 	//Routes for Subscription

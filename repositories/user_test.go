@@ -79,7 +79,7 @@ func TestUserRepo_IsExistedUser(t *testing.T) {
 			expectedResult: true,
 			expectedErr:    nil,
 			mockDb:         testhelpers.ConnectDB(),
-			preparePath:    "../testhelpers/user",
+			preparePath:    "../testhelpers/preparedata/datafortest",
 		},
 		{
 			name:           "User not exist",
@@ -87,7 +87,7 @@ func TestUserRepo_IsExistedUser(t *testing.T) {
 			expectedResult: false,
 			expectedErr:    nil,
 			mockDb:         testhelpers.ConnectDB(),
-			preparePath:    "../testhelpers/user",
+			preparePath:    "../testhelpers/preparedata/datafortest",
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestUserRepo_GetUserIDByEmail(t *testing.T) {
 			expectedResult: 0,
 			expectedErr:    nil,
 			mockDb:         testhelpers.ConnectDB(),
-			preparePath:    "../testhelpers/user",
+			preparePath:    "../testhelpers/preparedata/datafortest",
 		},
 		{
 			name:           "Get UserID by email success",
@@ -147,7 +147,7 @@ func TestUserRepo_GetUserIDByEmail(t *testing.T) {
 			expectedResult: 1,
 			expectedErr:    nil,
 			mockDb:         testhelpers.ConnectDB(),
-			preparePath:    "./testdata/user/user.sql",
+			preparePath:    "../testhelpers/preparedata/datafortest",
 		},
 	}
 
@@ -205,7 +205,7 @@ func TestUserRepo_GetEmailListByIDs(t *testing.T) {
 			expectedResult: []string{"abc@xyz.com"},
 			expectedErr:    nil,
 			mockDb:         testhelpers.ConnectDB(),
-			preparePath:    "../testhelpers/user",
+			preparePath:    "../testhelpers/preparedata/datafortest",
 		},
 	}
 

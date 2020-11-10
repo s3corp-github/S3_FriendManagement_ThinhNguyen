@@ -24,6 +24,7 @@ func (_self FriendRepo) CreateFriend(friendsRepoInput *model.FriendsRepoInput) e
 	_, err := _self.Db.Exec(query, friendsRepoInput.FirstID, friendsRepoInput.SecondID)
 	return err
 }
+
 func (_self FriendRepo) GetFriendListByID(userID int) ([]int, error) {
 	query := `select firstid, secondid from friends where firstid=$1 or secondid = $1`
 
@@ -47,6 +48,7 @@ func (_self FriendRepo) GetFriendListByID(userID int) ([]int, error) {
 	}
 	return friendListID, err
 }
+
 func (_self FriendRepo) GetBlockingListByID(userID int) ([]int, error) {
 	query := `select targetid from blocks where requestorid = $1`
 
@@ -65,6 +67,7 @@ func (_self FriendRepo) GetBlockingListByID(userID int) ([]int, error) {
 	}
 	return blockedListID, err
 }
+
 func (_self FriendRepo) GetBlockedListByID(userID int) ([]int, error) {
 	query := `select requestorid from blocks where targetid = $1`
 
@@ -83,6 +86,7 @@ func (_self FriendRepo) GetBlockedListByID(userID int) ([]int, error) {
 	}
 	return blockingListID, err
 }
+
 func (_self FriendRepo) IsBlockedByOtherEmail(firstUserID int, secondUserID int) (bool, error) {
 	query := `select exists(select true from blocks WHERE (
     						    	requestorid in ($1, $2) 
@@ -99,6 +103,7 @@ func (_self FriendRepo) IsBlockedByOtherEmail(firstUserID int, secondUserID int)
 	}
 	return false, nil
 }
+
 func (_self FriendRepo) IsExistedFriend(firstUserID int, secondUserID int) (bool, error) {
 	query := `select exists(
     						select true 
@@ -119,6 +124,7 @@ func (_self FriendRepo) IsExistedFriend(firstUserID int, secondUserID int) (bool
 	}
 	return false, nil
 }
+
 func (_self FriendRepo) GetSubscriberList(userID int) ([]int, error) {
 	query := `select requestorid from subscriptions where targetid=$1`
 	subscribers := make([]int, 0)
