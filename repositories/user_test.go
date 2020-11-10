@@ -185,7 +185,7 @@ func TestUserRepo_GetEmailListByIDs(t *testing.T) {
 		mockDb         *sql.DB
 	}{
 		{
-			name:           "No data input",
+			name:           "No data emailsInput",
 			input:          []int{},
 			expectedResult: []string{},
 			expectedErr:    nil,
@@ -243,7 +243,7 @@ func TestUserRepo_GetUserIDsByEmails(t *testing.T) {
 		mockDb         *sql.DB
 	}{
 		{
-			name:           "No data input",
+			name:           "No data emailsInput",
 			input:          []string{},
 			expectedResult: []int{},
 			expectedErr:    nil,

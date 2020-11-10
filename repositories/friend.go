@@ -1,9 +1,10 @@
 package repositories
 
 import (
-	"database/sql"
-
 	"S3_FriendManagement_ThinhNguyen/model"
+	"database/sql"
+	"fmt"
+	"strings"
 )
 
 type IFriendRepo interface {
@@ -14,6 +15,8 @@ type IFriendRepo interface {
 	IsBlockedByOtherEmail(int, int) (bool, error)
 	IsExistedFriend(int, int) (bool, error)
 	GetSubscriberList(int) ([]int, error)
+	GetEmailsFriendOrSubscribedWithNoBlocked(int) ([]int, error)
+	GetUserIDsByEmailsWithNoBlocked([]string, int) ([]int, error)
 }
 
 type FriendRepo struct {
@@ -141,4 +144,78 @@ func (_self FriendRepo) GetSubscriberList(userID int) ([]int, error) {
 		subscribers = append(subscribers, id)
 	}
 	return subscribers, nil
+}
+
+func (_self FriendRepo) GetEmailsFriendOrSubscribedWithNoBlocked(userID int) ([]int, error) {
+	query := `select distinct val.ID
+			  from
+				(
+					select ue.ID
+					from
+						useremails ue
+							join friends f
+								 on (ue.id = f.firstid or ue.id = f.secondid)
+					where ue.id <> $1
+					  and (f.firstid = $1 or f.secondid = $1)
+					union
+					select ue.ID
+					from
+						subscriptions s
+							join useremails ue
+								 on s.targetid = ue.id
+					where ue.id <> $1
+				) as val
+				where not exists(
+				    select 1
+				    from blocks b 
+				    where b.requestorid = val.id
+				    and b.targetid = $1
+				)`
+	rows, err := _self.Db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	UserIDs := make([]int, 0)
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		UserIDs = append(UserIDs, id)
+	}
+	return UserIDs, nil
+}
+
+func (_self FriendRepo) GetUserIDsByEmailsWithNoBlocked(emails []string, requestorID int) ([]int, error) {
+	if len(emails) == 0 {
+		return []int{}, nil
+	}
+
+	emailList := make([]string, len(emails))
+	for i, email := range emails {
+		emailList[i] = fmt.Sprintf("%v", email)
+	}
+	query := fmt.Sprintf(`select ID from useremails ue where email in ('%v')
+								and not exists
+								(
+									select 1 
+									from blocks b
+									where b.targetid = $1
+									and b.requestorid = ue.ID
+								)`, strings.Join(emailList, "','"))
+	rows, err := _self.Db.Query(query, requestorID)
+	if err != nil {
+		return nil, err
+	}
+
+	IDList := make([]int, 0)
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		IDList = append(IDList, id)
+	}
+	return IDList, nil
 }

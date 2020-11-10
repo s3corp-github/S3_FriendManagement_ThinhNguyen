@@ -112,57 +112,26 @@ func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails 
 	result := make([]string, 0)
 	resultIDs := make([]int, 0)
 	existedResultIDsMap := make(map[int]bool)
-	blockedIDsMap := make(map[int]bool)
 
-	//Get blocked list IDs by sender
-	blockedUserIDs, err := _self.IFriendRepo.GetBlockedListByID(senderID)
+	//Get friend connections and subscribers with no blocked
+	friendSubscriberIDs, err := _self.IFriendRepo.GetEmailsFriendOrSubscribedWithNoBlocked(senderID)
 	if err != nil {
 		return nil, err
 	}
-	for _, IDBlocked := range blockedUserIDs {
-		blockedIDsMap[IDBlocked] = true
+	for _, ID := range friendSubscriberIDs {
+		resultIDs = append(resultIDs, ID)
+		existedResultIDsMap[ID] = true
 	}
 
-	//Get friend connection by senderID
-	friendIDs, err := _self.IFriendRepo.GetFriendListByID(senderID)
-	if err != nil {
-		return nil, err
-	}
-	for _, ID := range friendIDs {
-		if _, ok := blockedIDsMap[ID]; !ok {
-			//Insert to result and existed list
-			resultIDs = append(resultIDs, ID)
-			existedResultIDsMap[ID] = true
-		}
-	}
-
-	//Get subscribers by senderID
-	subscriberIDs, err := _self.IFriendRepo.GetSubscriberList(senderID)
-	if err != nil {
-		return nil, err
-	}
-	for _, ID := range subscriberIDs {
-		if _, ok := blockedIDsMap[ID]; !ok {
-			//If not in emailMap then append to result and add to map
-			if _, ok := existedResultIDsMap[ID]; !ok {
-				resultIDs = append(resultIDs, ID)
-				existedResultIDsMap[ID] = true
-			}
-		}
-	}
-
-	//Get mentioned emails
-	mentionedEmailIDs, err := _self.IUserRepo.GetUserIDsByEmails(mentionedEmails)
+	//Get mentioned emails with no blocked
+	mentionedEmailIDs, err := _self.IFriendRepo.GetUserIDsByEmailsWithNoBlocked(mentionedEmails, senderID)
 	if err != nil {
 		return nil, err
 	}
 	for _, ID := range mentionedEmailIDs {
-		if _, ok := blockedIDsMap[ID]; !ok {
-			//If not in emailMap then append to result and add to map
-			if _, ok := existedResultIDsMap[ID]; !ok {
-				resultIDs = append(resultIDs, ID)
-				existedResultIDsMap[ID] = true
-			}
+		if _, ok := existedResultIDsMap[ID]; !ok {
+			resultIDs = append(resultIDs, ID)
+			existedResultIDsMap[ID] = true
 		}
 	}
 
@@ -175,5 +144,5 @@ func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails 
 		result = append(result, email)
 	}
 
-	return result, nil
+	return mentionedEmails, nil
 }

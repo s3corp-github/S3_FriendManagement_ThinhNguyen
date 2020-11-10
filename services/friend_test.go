@@ -109,6 +109,22 @@ func TestFriendService_GetFriendListByID(t *testing.T) {
 			},
 		},
 		{
+			name:           "get blocked list failed",
+			input:          1,
+			expectedResult: nil,
+			expectedErr:    errors.New("get blocked list failed with error"),
+			mockGetFriendsList: mockGetFriendListByID{
+				input:  1,
+				result: []int{2},
+				err:    nil,
+			},
+			mockGetBlockedList: mockGetBlockedListByID{
+				input:  1,
+				result: []int{3},
+				err:    errors.New("get blocked list failed with error"),
+			},
+		},
+		{
 			name:           "get blocking list failed",
 			input:          1,
 			expectedResult: nil,
@@ -259,6 +275,43 @@ func TestFriendService_GetCommonFriendListByID(t *testing.T) {
 				input:  1,
 				result: nil,
 				err:    errors.New("get first user's friend list failed with error"),
+			},
+		},
+		{
+			name:           "Get first user's blocked list failed with error",
+			input:          []int{1, 2},
+			expectedResult: nil,
+			expectedErr:    errors.New("get first user's blocked list failed with error"),
+			mockGetFriendsListFirstUser: mockGetFriendListByID{
+				input:  1,
+				result: []int{3},
+				err:    nil,
+			},
+			mockGetBlockedListFirstUser: mockGetBlockedListByID{
+				input:  1,
+				result: nil,
+				err:    errors.New("get first user's blocked list failed with error"),
+			},
+		},
+		{
+			name:           "Get first user's blocking list failed with error",
+			input:          []int{1, 2},
+			expectedResult: nil,
+			expectedErr:    errors.New("get first user's blocking list failed with error"),
+			mockGetFriendsListFirstUser: mockGetFriendListByID{
+				input:  1,
+				result: []int{3, 4, 5},
+				err:    nil,
+			},
+			mockGetBlockedListFirstUser: mockGetBlockedListByID{
+				input:  1,
+				result: []int{4},
+				err:    nil,
+			},
+			mockGetBlockingListFirstUser: mockGetBlockingListByID{
+				input:  1,
+				result: nil,
+				err:    errors.New("get first user's blocking list failed with error"),
 			},
 		},
 	}
@@ -416,22 +469,12 @@ func TestFriendService_IsExistedFriend(t *testing.T) {
 }
 
 func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
-	type mockGetFriendListByID struct {
+	type mockGetFriendsAndSubscribersByIDWithNoBlock struct {
 		input  int
 		result []int
 		err    error
 	}
-	type mockGetBlockedListByID struct {
-		input  int
-		result []int
-		err    error
-	}
-	type mockGetSubscribers struct {
-		input  int
-		result []int
-		err    error
-	}
-	type mockGetIDsByEmails struct {
+	type mockGetIDsByEmailsWithNoBlock struct {
 		input  []string
 		result []int
 		err    error
@@ -442,61 +485,22 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 		err    error
 	}
 	testCases := []struct {
-		name                   string
-		sender                 int
-		mentionedEmailList     []string
-		expectedResult         []string
-		expectedErr            error
-		mockGetBlockedList     mockGetBlockedListByID
-		mockGetFriendsList     mockGetFriendListByID
-		mockGetSubscribers     mockGetSubscribers
-		mockGetMentionedIDList mockGetIDsByEmails
-		mockGetEmailsByIDs     mockGetEmailsByIDs
+		name                  string
+		sender                int
+		mentionedEmailList    []string
+		expectedResult        []string
+		expectedErr           error
+		mockGetFriendsAndSubs mockGetFriendsAndSubscribersByIDWithNoBlock
+		requestorID           int
+		mockGetMentionedIDs   mockGetIDsByEmailsWithNoBlock
+		mockGetEmailsByIDs    mockGetEmailsByIDs
 	}{
 		{
-			name:           "Get blocked list failed with error",
+			name:           "Get friend connection and subscribers email list failed with error",
 			sender:         1,
 			expectedResult: nil,
 			expectedErr:    errors.New("failed with error"),
-			mockGetBlockedList: mockGetBlockedListByID{
-				input:  1,
-				result: nil,
-				err:    errors.New("failed with error"),
-			},
-		},
-		{
-			name:           "Get friend connection email list failed with error",
-			sender:         1,
-			expectedResult: nil,
-			expectedErr:    errors.New("failed with error"),
-			mockGetBlockedList: mockGetBlockedListByID{
-				input:  1,
-				result: []int{2},
-				err:    nil,
-			},
-			mockGetFriendsList: mockGetFriendListByID{
-				input:  1,
-				result: nil,
-				err:    errors.New("failed with error"),
-			},
-		},
-		{
-			name:               "Get subscriber list failed with error",
-			sender:             1,
-			mentionedEmailList: nil,
-			expectedResult:     nil,
-			expectedErr:        errors.New("failed with error"),
-			mockGetBlockedList: mockGetBlockedListByID{
-				input:  1,
-				result: []int{2},
-				err:    nil,
-			},
-			mockGetFriendsList: mockGetFriendListByID{
-				input:  1,
-				result: []int{3},
-				err:    nil,
-			},
-			mockGetSubscribers: mockGetSubscribers{
+			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
 				result: nil,
 				err:    errors.New("failed with error"),
@@ -508,55 +512,37 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 			expectedResult:     nil,
 			expectedErr:        errors.New("failed with error"),
-			mockGetBlockedList: mockGetBlockedListByID{
+			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
 				result: []int{2, 3},
 				err:    nil,
 			},
-			mockGetFriendsList: mockGetFriendListByID{
-				input:  1,
-				result: []int{3},
-				err:    nil,
-			},
-			mockGetSubscribers: mockGetSubscribers{
-				input:  1,
-				result: []int{4},
-				err:    nil,
-			},
-			mockGetMentionedIDList: mockGetIDsByEmails{
+			requestorID: 1,
+			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
 				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 				result: nil,
 				err:    errors.New("failed with error"),
 			},
 		},
 		{
-			name:               "Get emails which receive updates failed with error",
+			name:               "Get emails which receive updates failed with error removed block in GetMentionedID",
 			sender:             1,
 			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 			expectedResult:     []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 			expectedErr:        errors.New("failed with error"),
-			mockGetBlockedList: mockGetBlockedListByID{
+			requestorID:        1,
+			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
 				result: []int{2, 3},
 				err:    nil,
 			},
-			mockGetFriendsList: mockGetFriendListByID{
-				input:  1,
-				result: []int{3},
-				err:    nil,
-			},
-			mockGetSubscribers: mockGetSubscribers{
-				input:  1,
-				result: []int{4},
-				err:    nil,
-			},
-			mockGetMentionedIDList: mockGetIDsByEmails{
+			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
 				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-				result: []int{5, 6},
+				result: []int{5, 7},
 				err:    nil,
 			},
 			mockGetEmailsByIDs: mockGetEmailsByIDs{
-				input:  []int{4, 5, 6},
+				input:  []int{2, 3, 5, 7},
 				result: nil,
 				err:    errors.New("failed with error"),
 			},
@@ -565,31 +551,22 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			name:               "Get emails which receive updates success",
 			sender:             1,
 			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedResult:     []string{"xyzk@gmail.com", "mentioned@gmail.com", "abc@gmail.com"},
+			expectedResult:     []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 			expectedErr:        nil,
-			mockGetBlockedList: mockGetBlockedListByID{
-				input:  1,
-				result: []int{2, 3},
-				err:    nil,
-			},
-			mockGetFriendsList: mockGetFriendListByID{
-				input:  1,
-				result: []int{3},
-				err:    nil,
-			},
-			mockGetSubscribers: mockGetSubscribers{
+			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
 				result: []int{4},
 				err:    nil,
 			},
-			mockGetMentionedIDList: mockGetIDsByEmails{
+			requestorID: 1,
+			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
 				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 				result: []int{5, 6},
 				err:    nil,
 			},
 			mockGetEmailsByIDs: mockGetEmailsByIDs{
 				input:  []int{4, 5, 6},
-				result: []string{"xyzk@gmail.com", "mentioned@gmail.com", "abc@gmail.com"},
+				result: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 				err:    nil,
 			},
 		},
@@ -599,14 +576,13 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			// Given
 			mockFriendRepo := new(mockFriendRepo)
 			mockUserRepo := new(mockUserRepo)
-			mockFriendRepo.On("GetBlockedListByID", testCase.mockGetBlockedList.input).
-				Return(testCase.mockGetBlockedList.result, testCase.mockGetBlockedList.err)
-			mockFriendRepo.On("GetFriendListByID", testCase.mockGetFriendsList.input).
-				Return(testCase.mockGetFriendsList.result, testCase.mockGetFriendsList.err)
-			mockFriendRepo.On("GetSubscriberList", testCase.mockGetSubscribers.input).
-				Return(testCase.mockGetSubscribers.result, testCase.mockGetSubscribers.err)
-			mockUserRepo.On("GetUserIDsByEmails", testCase.mockGetMentionedIDList.input).
-				Return(testCase.mockGetMentionedIDList.result, testCase.mockGetMentionedIDList.err)
+
+			mockFriendRepo.On("GetEmailsFriendOrSubscribedWithNoBlocked", testCase.mockGetFriendsAndSubs.input).
+				Return(testCase.mockGetFriendsAndSubs.result, testCase.mockGetFriendsAndSubs.err)
+
+			mockFriendRepo.On("GetUserIDsByEmailsWithNoBlocked", testCase.mockGetMentionedIDs.input, testCase.requestorID).
+				Return(testCase.mockGetMentionedIDs.result, testCase.mockGetMentionedIDs.err)
+
 			mockUserRepo.On("GetEmailListByIDs", testCase.mockGetEmailsByIDs.input).
 				Return(testCase.mockGetEmailsByIDs.result, testCase.mockGetEmailsByIDs.err)
 
