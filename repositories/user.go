@@ -121,8 +121,7 @@ func (_self UserRepo) CheckInvalidEmails(emails []string) ([]string, error) {
 									select 1
 									from useremails ue
 									where ue.email = e.email
-								)
-								`, strings.Join(emailList, "'),('"))
+								)`, strings.Join(emailList, "'),('"))
 	rows, err := _self.Db.Query(query)
 	if err != nil {
 		return nil, err
