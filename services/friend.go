@@ -34,42 +34,42 @@ func (_self FriendService) CreateFriend(friendsServiceInput *model.FriendsServic
 func (_self FriendService) GetFriendListByID(userID int) ([]string, error) {
 	blockList := make(map[int]bool)
 	//Get all friend connection
-	friendListID, err := _self.IFriendRepo.GetFriendListByID(userID)
+	friendIDs, err := _self.IFriendRepo.GetFriendListByID(userID)
 	if err != nil {
 		return nil, err
 	}
 
 	//Get blocked UserIDs
-	blockedListID, err := _self.IFriendRepo.GetBlockedListByID(userID)
+	blockedIDs, err := _self.IFriendRepo.GetBlockedListByID(userID)
 	if err != nil {
 		return nil, err
 	}
-	for _, id := range blockedListID {
+	for _, id := range blockedIDs {
 		blockList[id] = true
 	}
 
 	//Get blocking UserIDs
-	blockingListID, err := _self.IFriendRepo.GetBlockingListByID(userID)
+	blockingIDs, err := _self.IFriendRepo.GetBlockingListByID(userID)
 	if err != nil {
 		return nil, err
 	}
-	for _, id := range blockingListID {
+	for _, id := range blockingIDs {
 		blockList[id] = true
 	}
 
 	//Get UserID list with no blocked
-	friendListIDNoBlock := make([]int, 0)
-	for _, id := range friendListID {
+	friendIDsNoBlock := make([]int, 0)
+	for _, id := range friendIDs {
 		if _, isBlock := blockList[id]; !isBlock {
-			friendListIDNoBlock = append(friendListIDNoBlock, id)
+			friendIDsNoBlock = append(friendIDsNoBlock, id)
 		}
 	}
 
-	friendListEmail, err := _self.IUserRepo.GetEmailListByIDs(friendListIDNoBlock)
+	friendEmails, err := _self.IUserRepo.GetEmailListByIDs(friendIDsNoBlock)
 	if err != nil {
 		return nil, err
 	}
-	return friendListEmail, err
+	return friendEmails, err
 }
 
 func (_self FriendService) IsBlockedByOtherEmail(firstUserID int, secondUserID int) (bool, error) {
@@ -83,104 +83,96 @@ func (_self FriendService) IsExistedFriend(firstUserID int, secondUserID int) (b
 }
 
 func (_self FriendService) GetCommonFriendListByID(userIDList []int) ([]string, error) {
-	firstFriendList, err := _self.GetFriendListByID(userIDList[0])
+	firstFriends, err := _self.GetFriendListByID(userIDList[0])
 	if err != nil {
 		return nil, err
 	}
-	secondFriendList, err := _self.GetFriendListByID(userIDList[1])
+	secondFriends, err := _self.GetFriendListByID(userIDList[1])
 	if err != nil {
 		return nil, err
 	}
 
 	//Get common friends
-	commonFriendList := make([]string, 0)
+	commonFriends := make([]string, 0)
 	commonMap := make(map[string]bool)
-	for _, firstEmail := range firstFriendList {
+	for _, firstEmail := range firstFriends {
 		commonMap[firstEmail] = true
 	}
 
-	for _, secondEmail := range secondFriendList {
+	for _, secondEmail := range secondFriends {
 		if _, ok := commonMap[secondEmail]; ok {
-			commonFriendList = append(commonFriendList, secondEmail)
+			commonFriends = append(commonFriends, secondEmail)
 		}
 	}
 
-	return commonFriendList, nil
+	return commonFriends, nil
 }
 
 func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails []string) ([]string, error) {
-	//Friend email list which can receive update from sender, for check existed
-	friendConnectionListMap := make(map[string]bool)
-
-	//Blocked email list which can NOT receive update from sender
-	blockListMap := make(map[string]bool)
-
-	//Friend email list which can receive update from sender, for return
 	result := make([]string, 0)
+	resultIDs := make([]int, 0)
+	existedResultIDsMap := make(map[int]bool)
+	blockedIDsMap := make(map[int]bool)
 
-	//Get email list which blocked by sender
-	blockedUserIDList, err := _self.IFriendRepo.GetBlockedListByID(senderID)
+	//Get blocked list IDs by sender
+	blockedUserIDs, err := _self.IFriendRepo.GetBlockedListByID(senderID)
 	if err != nil {
 		return nil, err
 	}
-	blockedEmailList, err := _self.IUserRepo.GetEmailListByIDs(blockedUserIDList)
+	for _, IDBlocked := range blockedUserIDs {
+		blockedIDsMap[IDBlocked] = true
+	}
+
+	//Get friend connection by senderID
+	friendIDs, err := _self.IFriendRepo.GetFriendListByID(senderID)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, emailBlocked := range blockedEmailList {
-		blockListMap[emailBlocked] = true
-	}
-
-	//Get all email friend connection
-	friendIDList, err := _self.IFriendRepo.GetFriendListByID(senderID)
-	if err != nil {
-		return nil, err
-	}
-	friendEmailList, err := _self.IUserRepo.GetEmailListByIDs(friendIDList)
-	if err != nil {
-		return nil, err
-	}
-
-	//Set data for result
-	for _, email := range friendEmailList {
-		if _, ok := blockListMap[email]; !ok {
-			//Insert to result and Friend list
-			result = append(result, email)
-			friendConnectionListMap[email] = true
+	for _, ID := range friendIDs {
+		if _, ok := blockedIDsMap[ID]; !ok {
+			//Insert to result and existed list
+			resultIDs = append(resultIDs, ID)
+			existedResultIDsMap[ID] = true
 		}
 	}
 
-	//Get subscriber list
-	subscriberIDList, err := _self.IFriendRepo.GetSubscriberList(senderID)
+	//Get subscribers by senderID
+	subscriberIDs, err := _self.IFriendRepo.GetSubscriberList(senderID)
 	if err != nil {
 		return nil, err
 	}
-	subscriberEmails, err := _self.IUserRepo.GetEmailListByIDs(subscriberIDList)
-	if err != nil {
-		return nil, err
-	}
-	for _, email := range subscriberEmails {
-		// If not blocked
-		if _, ok := blockListMap[email]; !ok {
-			// If not in emailMap then append to result and add to map
-			if _, ok := friendConnectionListMap[email]; !ok {
-				result = append(result, email)
-				friendConnectionListMap[email] = true
+	for _, ID := range subscriberIDs {
+		if _, ok := blockedIDsMap[ID]; !ok {
+			//If not in emailMap then append to result and add to map
+			if _, ok := existedResultIDsMap[ID]; !ok {
+				resultIDs = append(resultIDs, ID)
+				existedResultIDsMap[ID] = true
 			}
 		}
 	}
 
-	//Email in @mentioned
-	for _, email := range mentionedEmails {
-		// If not blocked
-		if _, ok := blockListMap[email]; !ok {
-			// If not exist in result
-			if _, ok := friendConnectionListMap[email]; !ok {
-				result = append(result, email)
-				friendConnectionListMap[email] = true
+	//Get mentioned emails
+	mentionedEmailIDs, err := _self.IUserRepo.GetUserIDsByEmails(mentionedEmails)
+	if err != nil {
+		return nil, err
+	}
+	for _, ID := range mentionedEmailIDs {
+		if _, ok := blockedIDsMap[ID]; !ok {
+			//If not in emailMap then append to result and add to map
+			if _, ok := existedResultIDsMap[ID]; !ok {
+				resultIDs = append(resultIDs, ID)
+				existedResultIDsMap[ID] = true
 			}
 		}
+	}
+
+	//Get emails to return
+	emails, err := _self.IUserRepo.GetEmailListByIDs(resultIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, email := range emails {
+		result = append(result, email)
 	}
 
 	return result, nil

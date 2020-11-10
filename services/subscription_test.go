@@ -1,10 +1,11 @@
 package services
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSubscriptionService_CreateSubscription(t *testing.T) {

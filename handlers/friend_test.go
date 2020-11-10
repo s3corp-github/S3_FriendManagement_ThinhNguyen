@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFriendHandler_CreateFriend(t *testing.T) {
@@ -33,7 +34,7 @@ func TestFriendHandler_CreateFriend(t *testing.T) {
 	}
 	testCases := []struct {
 		name                    string
-		requestBody             map[string]interface{}
+		requestBody             interface{}
 		expectedResponseBody    string
 		expectedStatus          int
 		mockGetFirstUserID      mockGetUserIDByEmail
@@ -407,7 +408,7 @@ func TestFriendHandler_GetFriendListByEmail(t *testing.T) {
 	}
 	testCases := []struct {
 		name                 string
-		requestBody          map[string]interface{}
+		requestBody          interface{}
 		expectedResponseBody string
 		expectedStatus       int
 		mockGetUserIDByEmail mockGetUserIDByEmail
@@ -545,7 +546,7 @@ func TestFriendHandler_GetCommonFriendListByEmails(t *testing.T) {
 	}
 	testCases := []struct {
 		name                       string
-		requestBody                map[string]interface{}
+		requestBody                interface{}
 		expectedResponseBody       string
 		expectedStatus             int
 		mockGetFirstUserIDByEmail  mockGetUserIDByEmail
@@ -774,6 +775,11 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 		result int
 		err    error
 	}
+	type mockCheckInvalidEmails struct {
+		input  []string
+		result []string
+		err    error
+	}
 	type mockGetEmailsReceiveUpdate struct {
 		sender          int
 		mentionedEmails []string
@@ -782,11 +788,11 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 	}
 	testCases := []struct {
 		name                       string
-		requestBody                map[string]interface{}
+		requestBody                interface{}
 		expectedResponseBody       string
 		expectedStatus             int
 		mockGetSenderUserID        mockGetUserIDByEmail
-		mockGetMentionedUserID     []mockGetUserIDByEmail
+		mockCheckInvalidEmails     mockCheckInvalidEmails
 		mockGetEmailsReceiveUpdate mockGetEmailsReceiveUpdate
 	}{
 		{
@@ -823,6 +829,25 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 			expectedStatus:       http.StatusBadRequest,
 		},
 		{
+			name: "Check existed emails from text failed with error",
+			requestBody: map[string]interface{}{
+				"sender": "abc@xyz.com",
+				"text":   "hello ! abc@xyz.com lmk@xyz.com",
+			},
+			expectedResponseBody: "failed with error\n",
+			expectedStatus:       http.StatusInternalServerError,
+			mockGetSenderUserID: mockGetUserIDByEmail{
+				input:  "abc@xyz.com",
+				result: 10,
+				err:    nil,
+			},
+			mockCheckInvalidEmails: mockCheckInvalidEmails{
+				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
+				result: nil,
+				err:    errors.New("failed with error"),
+			},
+		},
+		{
 			name: "Not existed userID from text",
 			requestBody: map[string]interface{}{
 				"sender": "abc@xyz.com",
@@ -835,24 +860,17 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 				result: 10,
 				err:    nil,
 			},
-			mockGetMentionedUserID: []mockGetUserIDByEmail{
-				{
-					input:  "abc@xyz.com",
-					result: 10,
-					err:    nil,
-				},
-				{
-					input:  "lmk@xyz.com",
-					result: 0,
-					err:    nil,
-				},
+			mockCheckInvalidEmails: mockCheckInvalidEmails{
+				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
+				result: []string{"lmk@xyz.com"},
+				err:    nil,
 			},
 		},
 		{
 			name: "Get email list receive updates failed with error",
 			requestBody: map[string]interface{}{
 				"sender": "abc@xyz.com",
-				"text":   "hello ! lmk@xyz.com",
+				"text":   "hello ! abc@xyz.com lmk@xyz.com",
 			},
 			expectedResponseBody: "failed with error\n",
 			expectedStatus:       http.StatusInternalServerError,
@@ -861,12 +879,10 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 				result: 10,
 				err:    nil,
 			},
-			mockGetMentionedUserID: []mockGetUserIDByEmail{
-				{
-					input:  "lmk@xyz.com",
-					result: 100,
-					err:    nil,
-				},
+			mockCheckInvalidEmails: mockCheckInvalidEmails{
+				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
+				result: nil,
+				err:    nil,
 			},
 			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
 				sender:          10,
@@ -879,26 +895,24 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 			name: "Get success",
 			requestBody: map[string]interface{}{
 				"sender": "abc@xyz.com",
-				"text":   "hello ! lmk@xyz.com",
+				"text":   "hello ! abc@xyz.com lmk@xyz.com",
 			},
-			expectedResponseBody: "{\"success\":true,\"recipients\":[\"xyz@gmail.com\",\"lmk@xyz.com\"]}\n",
+			expectedResponseBody: "{\"success\":true,\"recipients\":[\"lmk@xyz.com\",\"abc@gmail.com\"]}\n",
 			expectedStatus:       http.StatusOK,
 			mockGetSenderUserID: mockGetUserIDByEmail{
 				input:  "abc@xyz.com",
 				result: 10,
 				err:    nil,
 			},
-			mockGetMentionedUserID: []mockGetUserIDByEmail{
-				{
-					input:  "lmk@xyz.com",
-					result: 100,
-					err:    nil,
-				},
+			mockCheckInvalidEmails: mockCheckInvalidEmails{
+				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
+				result: nil,
+				err:    nil,
 			},
 			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
 				sender:          10,
 				mentionedEmails: []string{"lmk@xyz.com"},
-				result:          []string{"xyz@gmail.com", "lmk@xyz.com"},
+				result:          []string{"lmk@xyz.com", "abc@gmail.com"},
 				err:             nil,
 			},
 		},
@@ -912,10 +926,8 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 			mockUserService.On("GetUserIDByEmail", testCase.mockGetSenderUserID.input).
 				Return(testCase.mockGetSenderUserID.result, testCase.mockGetSenderUserID.err)
 
-			for index, _ := range testCase.mockGetMentionedUserID {
-				mockUserService.On("GetUserIDByEmail", testCase.mockGetMentionedUserID[index].input).
-					Return(testCase.mockGetMentionedUserID[index].result, testCase.mockGetMentionedUserID[index].err)
-			}
+			mockUserService.On("CheckInvalidEmails", testCase.mockCheckInvalidEmails.input).
+				Return(testCase.mockCheckInvalidEmails.result, testCase.mockCheckInvalidEmails.err)
 			mockFriendService.On("GetEmailsReceiveUpdate",
 				testCase.mockGetEmailsReceiveUpdate.sender, testCase.mockGetEmailsReceiveUpdate.mentionedEmails).
 				Return(testCase.mockGetEmailsReceiveUpdate.result, testCase.mockGetEmailsReceiveUpdate.err)

@@ -1,8 +1,9 @@
 package repositories
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
 	"database/sql"
+
+	"S3_FriendManagement_ThinhNguyen/model"
 )
 
 type ISubscriptionRepo interface {

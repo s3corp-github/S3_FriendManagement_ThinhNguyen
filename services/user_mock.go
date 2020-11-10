@@ -47,3 +47,23 @@ func (_self mockUserRepo) GetEmailListByIDs(userIDs []int) ([]string, error) {
 	}
 	return r0, r1
 }
+
+func (_self mockUserRepo) GetUserIDsByEmails(emails []string) ([]int, error) {
+	args := _self.Called(emails)
+	r0 := args.Get(0).([]int)
+	var r1 error
+	if args.Get(1) != nil {
+		r1 = args.Get(1).(error)
+	}
+	return r0, r1
+}
+
+func (_self mockUserRepo) CheckInvalidEmails(emails []string) ([]string, error) {
+	args := _self.Called(emails)
+	r0 := args.Get(0).([]string)
+	var r1 error
+	if args.Get(1) != nil {
+		r1 = args.Get(1).(error)
+	}
+	return r0, r1
+}

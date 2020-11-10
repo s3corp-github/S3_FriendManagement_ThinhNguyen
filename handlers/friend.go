@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/services"
-	"S3_FriendManagement_ThinhNguyen/utils"
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"S3_FriendManagement_ThinhNguyen/services"
+	"S3_FriendManagement_ThinhNguyen/utils"
 )
 
 type FriendHandler struct {
@@ -231,7 +232,6 @@ func (_self FriendHandler) GetEmailsReceiveUpdate(w http.ResponseWriter, r *http
 		return
 	}
 
-	//Response
 	// Response
 	json.NewEncoder(w).Encode(model.GetEmailReceiveUpdateResponse{
 		Success:    true,
@@ -252,20 +252,20 @@ func (_self FriendHandler) GetEmailsReceiveUpdateValidation(email string, text s
 
 	//Email @mentioned
 	emailListFromText := utils.FindEmailFromText(text)
-	var emailListValidFromText []string
-	for _, emailFromText := range emailListFromText {
-		emailFromTextUserID, err := _self.IUserService.GetUserIDByEmail(emailFromText)
-		if err != nil {
-			return 0, nil, http.StatusInternalServerError, err
-		}
-		if emailFromTextUserID == 0 {
-			return 0, nil, http.StatusBadRequest, errors.New("Email address \"" + emailFromText + "\" not existed")
-		}
-		//Remove sender from text
-		if emailFromText != email {
-			emailListValidFromText = append(emailListValidFromText, emailFromText)
-		}
+	emailsNotValid, err := _self.IUserService.CheckInvalidEmails(emailListFromText)
+	if err != nil {
+		return 0, nil, http.StatusInternalServerError, err
+	}
+	if len(emailsNotValid) > 0 {
+		return 0, nil, http.StatusBadRequest, errors.New("Email address \"" + emailsNotValid[0] + "\" not existed")
 	}
 
-	return userID, emailListValidFromText, 0, nil
+	//Remove sender from text
+	var emailsValidFromText []string
+	for _, emailFromText := range emailListFromText {
+		if emailFromText != email {
+			emailsValidFromText = append(emailsValidFromText, emailFromText)
+		}
+	}
+	return userID, emailsValidFromText, 0, nil
 }

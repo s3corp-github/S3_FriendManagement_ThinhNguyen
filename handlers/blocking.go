@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/services"
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"S3_FriendManagement_ThinhNguyen/services"
 )
 
 type BlockHandler struct {

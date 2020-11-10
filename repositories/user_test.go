@@ -1,12 +1,13 @@
 package repositories
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/testhelpers"
 	"database/sql"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"S3_FriendManagement_ThinhNguyen/testhelpers"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUserRepo_CreateUser(t *testing.T) {
@@ -220,6 +221,64 @@ func TestUserRepo_GetEmailListByIDs(t *testing.T) {
 
 			// When
 			result, err := userRepo.GetEmailListByIDs(testCase.input)
+
+			// Then
+			if testCase.expectedErr != nil {
+				require.EqualError(t, err, testCase.expectedErr.Error())
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, result, testCase.expectedResult)
+			}
+		})
+	}
+}
+
+func TestUserRepo_GetUserIDsByEmails(t *testing.T) {
+	testCases := []struct {
+		name           string
+		input          []string
+		expectedResult []int
+		expectedErr    error
+		preparePath    string
+		mockDb         *sql.DB
+	}{
+		{
+			name:           "No data input",
+			input:          []string{},
+			expectedResult: []int{},
+			expectedErr:    nil,
+			mockDb:         testhelpers.ConnectDB(),
+			preparePath:    "",
+		},
+		{
+			name:           "Failed with error",
+			input:          []string{"abc@xyz.com"},
+			expectedResult: nil,
+			expectedErr:    errors.New("pq: password authentication failed for user \"postgrespassword=000000\""),
+			mockDb:         testhelpers.ConnectDBFailed(),
+			preparePath:    "",
+		},
+		{
+			name:           "Get email list from UserID list success",
+			input:          []string{"abc@xyz.com", "xyz@abc.com"},
+			expectedResult: []int{1, 2},
+			expectedErr:    nil,
+			mockDb:         testhelpers.ConnectDB(),
+			preparePath:    "../testhelpers/preparedata/datafortest",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Given
+			testhelpers.PrepareDBForTest(testCase.mockDb, testCase.preparePath)
+
+			userRepo := UserRepo{
+				Db: testCase.mockDb,
+			}
+
+			// When
+			result, err := userRepo.GetUserIDsByEmails(testCase.input)
 
 			// Then
 			if testCase.expectedErr != nil {

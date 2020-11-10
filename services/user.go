@@ -9,6 +9,7 @@ type IUserService interface {
 	CreateUser(*model.UserServiceInput) error
 	IsExistedUser(string) (bool, error)
 	GetUserIDByEmail(string) (int, error)
+	CheckInvalidEmails([]string) ([]string, error)
 }
 
 type UserService struct {
@@ -34,4 +35,9 @@ func (_self UserService) IsExistedUser(email string) (bool, error) {
 	//call repo
 	existed, err := _self.IUserRepo.IsExistedUser(email)
 	return existed, err
+}
+
+func (_self UserService) CheckInvalidEmails(emails []string) ([]string, error) {
+	results, err := _self.IUserRepo.CheckInvalidEmails(emails)
+	return results, err
 }

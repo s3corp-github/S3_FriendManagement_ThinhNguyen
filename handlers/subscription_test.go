@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
@@ -33,7 +34,7 @@ func TestSubscriptionHandler_CreateSubscription(t *testing.T) {
 	}
 	testCases := []struct {
 		name                      string
-		requestBody               map[string]interface{}
+		requestBody               interface{}
 		expectedResponseBody      string
 		expectedStatus            int
 		mockGetRequestorUserID    mockGetUserIDByEmail

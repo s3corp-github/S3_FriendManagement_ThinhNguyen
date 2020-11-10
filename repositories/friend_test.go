@@ -1,12 +1,13 @@
 package repositories
 
 import (
-	"S3_FriendManagement_ThinhNguyen/model"
-	"S3_FriendManagement_ThinhNguyen/testhelpers"
 	"database/sql"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"S3_FriendManagement_ThinhNguyen/model"
+	"S3_FriendManagement_ThinhNguyen/testhelpers"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFriendRepo_CreateFriend(t *testing.T) {
