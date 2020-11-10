@@ -1,15 +1,16 @@
 package main
 
 import (
-	"S3_FriendManagement_ThinhNguyen/routes"
 	"database/sql"
 	"fmt"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+
+	"S3_FriendManagement_ThinhNguyen/routes"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
