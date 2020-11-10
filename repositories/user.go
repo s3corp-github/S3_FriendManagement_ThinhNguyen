@@ -115,13 +115,13 @@ func (_self UserRepo) CheckInvalidEmails(emails []string) ([]string, error) {
 	}
 	query := fmt.Sprintf(`select email
 								from (
-									 values ('%v')
+							 		values ('%v')
 								)as e(email)
 								where not exists(
-										select 1
-										from useremails ue
-										where ue.email = e.email
-									)
+									select 1
+									from useremails ue
+									where ue.email = e.email
+								)
 								`, strings.Join(emailList, "'),('"))
 	rows, err := _self.Db.Query(query)
 	if err != nil {
