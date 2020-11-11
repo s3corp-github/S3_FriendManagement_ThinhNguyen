@@ -775,16 +775,11 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 		result int
 		err    error
 	}
-	type mockCheckInvalidEmails struct {
-		input  []string
+	type mockGetEmailsReceiveUpdate struct {
+		sender int
+		text   string
 		result []string
 		err    error
-	}
-	type mockGetEmailsReceiveUpdate struct {
-		sender          int
-		mentionedEmails []string
-		result          []string
-		err             error
 	}
 	testCases := []struct {
 		name                       string
@@ -792,7 +787,6 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 		expectedResponseBody       string
 		expectedStatus             int
 		mockGetSenderUserID        mockGetUserIDByEmail
-		mockCheckInvalidEmails     mockCheckInvalidEmails
 		mockGetEmailsReceiveUpdate mockGetEmailsReceiveUpdate
 	}{
 		{
@@ -829,48 +823,10 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 			expectedStatus:       http.StatusBadRequest,
 		},
 		{
-			name: "Check existed emails from text failed with error",
-			requestBody: map[string]interface{}{
-				"sender": "abc@xyz.com",
-				"text":   "hello ! abc@xyz.com lmk@xyz.com",
-			},
-			expectedResponseBody: "failed with error\n",
-			expectedStatus:       http.StatusInternalServerError,
-			mockGetSenderUserID: mockGetUserIDByEmail{
-				input:  "abc@xyz.com",
-				result: 10,
-				err:    nil,
-			},
-			mockCheckInvalidEmails: mockCheckInvalidEmails{
-				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
-				result: nil,
-				err:    errors.New("failed with error"),
-			},
-		},
-		{
-			name: "Not existed userID from text",
-			requestBody: map[string]interface{}{
-				"sender": "abc@xyz.com",
-				"text":   "hello ! abc@xyz.com lmk@xyz.com",
-			},
-			expectedResponseBody: "Email address \"lmk@xyz.com\" not existed\n",
-			expectedStatus:       http.StatusBadRequest,
-			mockGetSenderUserID: mockGetUserIDByEmail{
-				input:  "abc@xyz.com",
-				result: 10,
-				err:    nil,
-			},
-			mockCheckInvalidEmails: mockCheckInvalidEmails{
-				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
-				result: []string{"lmk@xyz.com"},
-				err:    nil,
-			},
-		},
-		{
 			name: "Get email list receive updates failed with error",
 			requestBody: map[string]interface{}{
 				"sender": "abc@xyz.com",
-				"text":   "hello ! abc@xyz.com lmk@xyz.com",
+				"text":   "hello abc@xyz.com lmk@xyz.com",
 			},
 			expectedResponseBody: "failed with error\n",
 			expectedStatus:       http.StatusInternalServerError,
@@ -879,23 +835,18 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 				result: 10,
 				err:    nil,
 			},
-			mockCheckInvalidEmails: mockCheckInvalidEmails{
-				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
-				result: nil,
-				err:    nil,
-			},
 			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
-				sender:          10,
-				mentionedEmails: []string{"lmk@xyz.com"},
-				result:          nil,
-				err:             errors.New("failed with error"),
+				sender: 10,
+				text:   "hello abc@xyz.com lmk@xyz.com",
+				result: nil,
+				err:    errors.New("failed with error"),
 			},
 		},
 		{
 			name: "Get success",
 			requestBody: map[string]interface{}{
 				"sender": "abc@xyz.com",
-				"text":   "hello ! abc@xyz.com lmk@xyz.com",
+				"text":   "hello another@gmail.com",
 			},
 			expectedResponseBody: "{\"success\":true,\"recipients\":[\"lmk@xyz.com\",\"abc@gmail.com\"]}\n",
 			expectedStatus:       http.StatusOK,
@@ -904,16 +855,11 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 				result: 10,
 				err:    nil,
 			},
-			mockCheckInvalidEmails: mockCheckInvalidEmails{
-				input:  []string{"abc@xyz.com", "lmk@xyz.com"},
-				result: nil,
-				err:    nil,
-			},
 			mockGetEmailsReceiveUpdate: mockGetEmailsReceiveUpdate{
-				sender:          10,
-				mentionedEmails: []string{"lmk@xyz.com"},
-				result:          []string{"lmk@xyz.com", "abc@gmail.com"},
-				err:             nil,
+				sender: 10,
+				text:   "hello another@gmail.com",
+				result: []string{"lmk@xyz.com", "abc@gmail.com"},
+				err:    nil,
 			},
 		},
 	}
@@ -926,10 +872,8 @@ func TestFriendHandler_GetEmailsReceiveUpdate(t *testing.T) {
 			mockUserService.On("GetUserIDByEmail", testCase.mockGetSenderUserID.input).
 				Return(testCase.mockGetSenderUserID.result, testCase.mockGetSenderUserID.err)
 
-			mockUserService.On("CheckInvalidEmails", testCase.mockCheckInvalidEmails.input).
-				Return(testCase.mockCheckInvalidEmails.result, testCase.mockCheckInvalidEmails.err)
 			mockFriendService.On("GetEmailsReceiveUpdate",
-				testCase.mockGetEmailsReceiveUpdate.sender, testCase.mockGetEmailsReceiveUpdate.mentionedEmails).
+				testCase.mockGetEmailsReceiveUpdate.sender, testCase.mockGetEmailsReceiveUpdate.text).
 				Return(testCase.mockGetEmailsReceiveUpdate.result, testCase.mockGetEmailsReceiveUpdate.err)
 
 			handlers := FriendHandler{

@@ -3,8 +3,6 @@ package repositories
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
 	"database/sql"
-	"fmt"
-	"strings"
 )
 
 type IFriendRepo interface {
@@ -16,7 +14,6 @@ type IFriendRepo interface {
 	IsExistedFriend(int, int) (bool, error)
 	GetSubscriberList(int) ([]int, error)
 	GetEmailsFriendOrSubscribedWithNoBlocked(int) ([]int, error)
-	GetUserIDsByEmailsWithNoBlocked([]string, int) ([]int, error)
 }
 
 type FriendRepo struct {
@@ -185,37 +182,4 @@ func (_self FriendRepo) GetEmailsFriendOrSubscribedWithNoBlocked(userID int) ([]
 		UserIDs = append(UserIDs, id)
 	}
 	return UserIDs, nil
-}
-
-func (_self FriendRepo) GetUserIDsByEmailsWithNoBlocked(emails []string, requestorID int) ([]int, error) {
-	if len(emails) == 0 {
-		return []int{}, nil
-	}
-
-	emailList := make([]string, len(emails))
-	for i, email := range emails {
-		emailList[i] = fmt.Sprintf("%v", email)
-	}
-	query := fmt.Sprintf(`select ID from useremails ue where email in ('%v')
-								and not exists
-								(
-									select 1 
-									from blocks b
-									where b.targetid = $1
-									and b.requestorid = ue.ID
-								)`, strings.Join(emailList, "','"))
-	rows, err := _self.Db.Query(query, requestorID)
-	if err != nil {
-		return nil, err
-	}
-
-	IDList := make([]int, 0)
-	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		IDList = append(IDList, id)
-	}
-	return IDList, nil
 }

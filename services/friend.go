@@ -3,6 +3,7 @@ package services
 import (
 	"S3_FriendManagement_ThinhNguyen/model"
 	"S3_FriendManagement_ThinhNguyen/repositories"
+	"S3_FriendManagement_ThinhNguyen/utils"
 )
 
 type IFriendService interface {
@@ -11,7 +12,7 @@ type IFriendService interface {
 	GetFriendListByID(int) ([]string, error)
 	IsBlockedByOtherEmail(int, int) (bool, error)
 	IsExistedFriend(int, int) (bool, error)
-	GetEmailsReceiveUpdate(int, []string) ([]string, error)
+	GetEmailsReceiveUpdate(int, string) ([]string, error)
 }
 
 type FriendService struct {
@@ -108,11 +109,11 @@ func (_self FriendService) GetCommonFriendListByID(userIDList []int) ([]string, 
 	return commonFriends, nil
 }
 
-func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails []string) ([]string, error) {
+func (_self FriendService) GetEmailsReceiveUpdate(senderID int, text string) ([]string, error) {
 	result := make([]string, 0)
 	resultIDs := make([]int, 0)
 	existedResultIDsMap := make(map[int]bool)
-
+	existedEmailsMap := make(map[string]bool)
 	//Get friend connections and subscribers with no blocked
 	friendSubscriberIDs, err := _self.IFriendRepo.GetEmailsFriendOrSubscribedWithNoBlocked(senderID)
 	if err != nil {
@@ -123,18 +124,6 @@ func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails 
 		existedResultIDsMap[ID] = true
 	}
 
-	//Get mentioned emails with no blocked
-	mentionedEmailIDs, err := _self.IFriendRepo.GetUserIDsByEmailsWithNoBlocked(mentionedEmails, senderID)
-	if err != nil {
-		return nil, err
-	}
-	for _, ID := range mentionedEmailIDs {
-		if _, ok := existedResultIDsMap[ID]; !ok {
-			resultIDs = append(resultIDs, ID)
-			existedResultIDsMap[ID] = true
-		}
-	}
-
 	//Get emails to return
 	emails, err := _self.IUserRepo.GetEmailListByIDs(resultIDs)
 	if err != nil {
@@ -142,7 +131,15 @@ func (_self FriendService) GetEmailsReceiveUpdate(senderID int, mentionedEmails 
 	}
 	for _, email := range emails {
 		result = append(result, email)
+		existedEmailsMap[email] = true
 	}
 
-	return mentionedEmails, nil
+	//Add mentionedEmails to result
+	mentionedEmails := utils.FindEmailFromText(text)
+	for _, email := range mentionedEmails {
+		if _, ok := existedEmailsMap[email]; !ok {
+			result = append(result, email)
+		}
+	}
+	return result, nil
 }

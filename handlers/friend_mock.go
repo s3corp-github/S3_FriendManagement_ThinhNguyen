@@ -58,8 +58,8 @@ func (_self mockFriendService) GetCommonFriendListByID(userIDList []int) ([]stri
 	return r0, r1
 }
 
-func (_self mockFriendService) GetEmailsReceiveUpdate(userID int, mentionedEmails []string) ([]string, error) {
-	args := _self.Called(userID, mentionedEmails)
+func (_self mockFriendService) GetEmailsReceiveUpdate(userID int, text string) ([]string, error) {
+	args := _self.Called(userID, text)
 	r0 := args.Get(0).([]string)
 	var r1 error
 	if args.Get(1) != nil {

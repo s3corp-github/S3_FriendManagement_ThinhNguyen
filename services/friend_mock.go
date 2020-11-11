@@ -87,13 +87,3 @@ func (_self mockFriendRepo) GetEmailsFriendOrSubscribedWithNoBlocked(userID int)
 	}
 	return r0, r1
 }
-
-func (_self mockFriendRepo) GetUserIDsByEmailsWithNoBlocked(emails []string, requestorID int) ([]int, error) {
-	args := _self.Called(emails, requestorID)
-	r0 := args.Get(0).([]int)
-	var r1 error
-	if args.Get(1) != nil {
-		r1 = args.Get(1).(error)
-	}
-	return r0, r1
-}

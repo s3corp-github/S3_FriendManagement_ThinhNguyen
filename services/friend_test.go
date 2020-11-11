@@ -514,11 +514,6 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 		result []int
 		err    error
 	}
-	type mockGetIDsByEmailsWithNoBlock struct {
-		input  []string
-		result []int
-		err    error
-	}
 	type mockGetEmailsByIDs struct {
 		input  []int
 		result []string
@@ -527,12 +522,11 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		sender                int
-		mentionedEmailList    []string
+		text                  string
 		expectedResult        []string
 		expectedErr           error
 		mockGetFriendsAndSubs mockGetFriendsAndSubscribersByIDWithNoBlock
 		requestorID           int
-		mockGetMentionedIDs   mockGetIDsByEmailsWithNoBlock
 		mockGetEmailsByIDs    mockGetEmailsByIDs
 	}{
 		{
@@ -547,65 +541,37 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			},
 		},
 		{
-			name:               "Get mentioned email list failed with error",
-			sender:             1,
-			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedResult:     nil,
-			expectedErr:        errors.New("failed with error"),
+			name:           "Get emails which receive updates failed with error",
+			sender:         1,
+			text:           "",
+			expectedResult: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
+			expectedErr:    errors.New("failed with error"),
+			requestorID:    1,
 			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
 				result: []int{2, 3},
 				err:    nil,
 			},
-			requestorID: 1,
-			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
-				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
+			mockGetEmailsByIDs: mockGetEmailsByIDs{
+				input:  []int{2, 3},
 				result: nil,
 				err:    errors.New("failed with error"),
 			},
 		},
 		{
-			name:               "Get emails which receive updates failed with error removed block in GetMentionedID",
-			sender:             1,
-			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedResult:     []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedErr:        errors.New("failed with error"),
-			requestorID:        1,
+			name:           "Get emails which receive updates success",
+			sender:         1,
+			text:           "hello another@example.com",
+			expectedResult: []string{"xyzk@gmail.com", "mentioned@gmail.com", "another@example.com"},
+			expectedErr:    nil,
 			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
 				input:  1,
-				result: []int{2, 3},
-				err:    nil,
-			},
-			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
-				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-				result: []int{5, 7},
-				err:    nil,
-			},
-			mockGetEmailsByIDs: mockGetEmailsByIDs{
-				input:  []int{2, 3, 5, 7},
-				result: nil,
-				err:    errors.New("failed with error"),
-			},
-		},
-		{
-			name:               "Get emails which receive updates success",
-			sender:             1,
-			mentionedEmailList: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedResult:     []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-			expectedErr:        nil,
-			mockGetFriendsAndSubs: mockGetFriendsAndSubscribersByIDWithNoBlock{
-				input:  1,
-				result: []int{4},
+				result: []int{4, 5},
 				err:    nil,
 			},
 			requestorID: 1,
-			mockGetMentionedIDs: mockGetIDsByEmailsWithNoBlock{
-				input:  []string{"xyzk@gmail.com", "mentioned@gmail.com"},
-				result: []int{5, 6},
-				err:    nil,
-			},
 			mockGetEmailsByIDs: mockGetEmailsByIDs{
-				input:  []int{4, 5, 6},
+				input:  []int{4, 5},
 				result: []string{"xyzk@gmail.com", "mentioned@gmail.com"},
 				err:    nil,
 			},
@@ -620,9 +586,6 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			mockFriendRepo.On("GetEmailsFriendOrSubscribedWithNoBlocked", testCase.mockGetFriendsAndSubs.input).
 				Return(testCase.mockGetFriendsAndSubs.result, testCase.mockGetFriendsAndSubs.err)
 
-			mockFriendRepo.On("GetUserIDsByEmailsWithNoBlocked", testCase.mockGetMentionedIDs.input, testCase.requestorID).
-				Return(testCase.mockGetMentionedIDs.result, testCase.mockGetMentionedIDs.err)
-
 			mockUserRepo.On("GetEmailListByIDs", testCase.mockGetEmailsByIDs.input).
 				Return(testCase.mockGetEmailsByIDs.result, testCase.mockGetEmailsByIDs.err)
 
@@ -632,7 +595,7 @@ func TestFriendService_GetEmailsReceiveUpdate(t *testing.T) {
 			}
 
 			// When
-			result, err := service.GetEmailsReceiveUpdate(testCase.sender, testCase.mentionedEmailList)
+			result, err := service.GetEmailsReceiveUpdate(testCase.sender, testCase.text)
 
 			// Then
 			if testCase.expectedErr != nil {

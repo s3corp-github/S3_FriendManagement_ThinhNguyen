@@ -7,7 +7,6 @@ import (
 
 	"S3_FriendManagement_ThinhNguyen/model"
 	"S3_FriendManagement_ThinhNguyen/services"
-	"S3_FriendManagement_ThinhNguyen/utils"
 )
 
 type FriendHandler struct {
@@ -219,14 +218,14 @@ func (_self FriendHandler) GetEmailsReceiveUpdate(w http.ResponseWriter, r *http
 	}
 
 	// Check existed email and get userID
-	senderID, mentionedEmails, statusCode, err := _self.GetEmailsReceiveUpdateValidation(emailReceiveUpdateRequest.Sender, emailReceiveUpdateRequest.Text)
+	senderID, statusCode, err := _self.GetEmailsReceiveUpdateValidation(emailReceiveUpdateRequest.Sender)
 	if err != nil {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
 
 	//Call services
-	recipientList, err := _self.IFriendServices.GetEmailsReceiveUpdate(senderID, mentionedEmails)
+	recipientList, err := _self.IFriendServices.GetEmailsReceiveUpdate(senderID, emailReceiveUpdateRequest.Text)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -241,31 +240,13 @@ func (_self FriendHandler) GetEmailsReceiveUpdate(w http.ResponseWriter, r *http
 
 }
 
-func (_self FriendHandler) GetEmailsReceiveUpdateValidation(email string, text string) (int, []string, int, error) {
+func (_self FriendHandler) GetEmailsReceiveUpdateValidation(email string) (int, int, error) {
 	userID, err := _self.IUserService.GetUserIDByEmail(email)
 	if err != nil {
-		return 0, nil, http.StatusInternalServerError, err
+		return 0, http.StatusInternalServerError, err
 	}
 	if userID == 0 {
-		return 0, nil, http.StatusBadRequest, errors.New("the sender does not exist")
+		return 0, http.StatusBadRequest, errors.New("the sender does not exist")
 	}
-
-	//Email @mentioned
-	emailListFromText := utils.FindEmailFromText(text)
-	emailsNotValid, err := _self.IUserService.CheckInvalidEmails(emailListFromText)
-	if err != nil {
-		return 0, nil, http.StatusInternalServerError, err
-	}
-	if len(emailsNotValid) > 0 {
-		return 0, nil, http.StatusBadRequest, errors.New("Email address \"" + emailsNotValid[0] + "\" not existed")
-	}
-
-	//Remove sender from text
-	var emailsValidFromText []string
-	for _, emailFromText := range emailListFromText {
-		if emailFromText != email {
-			emailsValidFromText = append(emailsValidFromText, emailFromText)
-		}
-	}
-	return userID, emailsValidFromText, 0, nil
+	return userID, 0, nil
 }
