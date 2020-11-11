@@ -88,6 +88,15 @@ func TestSubscriptionService_IsExistedSubscription(t *testing.T) {
 			mockRepoError:  errors.New("check is existed subscription failed with error"),
 		},
 		{
+			name:           "Subscription is not exist",
+			input:          []int{1, 2},
+			expectedResult: false,
+			expectedErr:    nil,
+			mockRepoInput:  []int{1, 2},
+			mockRepoResult: false,
+			mockRepoError:  nil,
+		},
+		{
 			name:           "Check is existed subscription success",
 			input:          []int{1, 2},
 			expectedErr:    nil,

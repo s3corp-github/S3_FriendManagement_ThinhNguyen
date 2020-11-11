@@ -35,12 +35,12 @@ func TestFriendService_CreateFriend(t *testing.T) {
 				FirstID:  1,
 				SecondID: 2,
 			},
-			expectedErr: errors.New("create friend connection failed with error"),
+			expectedErr: nil,
 			mockRepoInput: &model.FriendsRepoInput{
 				FirstID:  1,
 				SecondID: 2,
 			},
-			mockRepoErr: errors.New("create friend connection failed with error"),
+			mockRepoErr: nil,
 		},
 	}
 	for _, testCase := range testCases {
@@ -225,7 +225,7 @@ func TestFriendService_GetFriendListByID(t *testing.T) {
 				require.EqualError(t, err, testCase.expectedErr.Error())
 			} else {
 				require.NoError(t, err)
-				require.ElementsMatch(t, result, testCase.expectedResult)
+				require.Equal(t, testCase.expectedResult, result)
 			}
 		})
 	}
@@ -278,40 +278,80 @@ func TestFriendService_GetCommonFriendListByID(t *testing.T) {
 			},
 		},
 		{
-			name:           "Get first user's blocked list failed with error",
+			name:           "Get second user's friend list failed with error",
 			input:          []int{1, 2},
 			expectedResult: nil,
-			expectedErr:    errors.New("get first user's blocked list failed with error"),
+			expectedErr:    errors.New("get second user's friend list failed with error"),
 			mockGetFriendsListFirstUser: mockGetFriendListByID{
 				input:  1,
-				result: []int{3},
+				result: []int{10},
 				err:    nil,
 			},
 			mockGetBlockedListFirstUser: mockGetBlockedListByID{
 				input:  1,
-				result: nil,
-				err:    errors.New("get first user's blocked list failed with error"),
-			},
-		},
-		{
-			name:           "Get first user's blocking list failed with error",
-			input:          []int{1, 2},
-			expectedResult: nil,
-			expectedErr:    errors.New("get first user's blocking list failed with error"),
-			mockGetFriendsListFirstUser: mockGetFriendListByID{
-				input:  1,
-				result: []int{3, 4, 5},
-				err:    nil,
-			},
-			mockGetBlockedListFirstUser: mockGetBlockedListByID{
-				input:  1,
-				result: []int{4},
+				result: []int{},
 				err:    nil,
 			},
 			mockGetBlockingListFirstUser: mockGetBlockingListByID{
 				input:  1,
-				result: nil,
-				err:    errors.New("get first user's blocking list failed with error"),
+				result: []int{},
+				err:    nil,
+			},
+			mockGetEmailsByFirstUSerList: mockGetEmailListByIDs{
+				input:  []int{10},
+				result: []string{"abc@example.com"},
+				err:    nil,
+			},
+			mockGetFriendsListSecondUser: mockGetFriendListByID{
+				input:  2,
+				result: []int{11, 12},
+				err:    errors.New("get second user's friend list failed with error"),
+			},
+		},
+		{
+			name:           "Get user's friend list success",
+			input:          []int{1, 2},
+			expectedResult: []string{"abc@example.com"},
+			expectedErr:    nil,
+			mockGetFriendsListFirstUser: mockGetFriendListByID{
+				input:  1,
+				result: []int{10},
+				err:    nil,
+			},
+			mockGetBlockedListFirstUser: mockGetBlockedListByID{
+				input:  1,
+				result: []int{},
+				err:    nil,
+			},
+			mockGetBlockingListFirstUser: mockGetBlockingListByID{
+				input:  1,
+				result: []int{},
+				err:    nil,
+			},
+			mockGetEmailsByFirstUSerList: mockGetEmailListByIDs{
+				input:  []int{10},
+				result: []string{"abc@example.com"},
+				err:    nil,
+			},
+			mockGetFriendsListSecondUser: mockGetFriendListByID{
+				input:  2,
+				result: []int{10, 12},
+				err:    nil,
+			},
+			mockGetBlockedListSecondUser: mockGetBlockedListByID{
+				input:  2,
+				result: []int{},
+				err:    nil,
+			},
+			mockGetBlockingListSecondUser: mockGetBlockingListByID{
+				input:  2,
+				result: []int{},
+				err:    nil,
+			},
+			mockGetEmailsBySecondUSerList: mockGetEmailListByIDs{
+				input:  []int{10, 12},
+				result: []string{"abc@example.com", "xyz@example.com"},
+				err:    nil,
 			},
 		},
 	}
@@ -330,8 +370,8 @@ func TestFriendService_GetCommonFriendListByID(t *testing.T) {
 			mockUserRepo.On("GetEmailListByIDs", testCase.mockGetEmailsByFirstUSerList.input).
 				Return(testCase.mockGetEmailsByFirstUSerList.result, testCase.mockGetEmailsByFirstUSerList.err)
 
-			mockFriendRepo.On("GetFriendListByID", testCase.mockGetEmailsBySecondUSerList.input).
-				Return(testCase.mockGetEmailsBySecondUSerList.result, testCase.mockGetEmailsBySecondUSerList.err)
+			mockFriendRepo.On("GetFriendListByID", testCase.mockGetFriendsListSecondUser.input).
+				Return(testCase.mockGetFriendsListSecondUser.result, testCase.mockGetFriendsListSecondUser.err)
 			mockFriendRepo.On("GetBlockedListByID", testCase.mockGetBlockedListSecondUser.input).
 				Return(testCase.mockGetBlockedListSecondUser.result, testCase.mockGetBlockedListSecondUser.err)
 			mockFriendRepo.On("GetBlockingListByID", testCase.mockGetBlockingListSecondUser.input).
