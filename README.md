@@ -48,7 +48,7 @@ POST /friend
 }
 ```
 
-### Get friends list for an email address
+### Get friend list for an email address
 ```http request
 GET /friend/friends
 ```
@@ -118,7 +118,7 @@ POST /subscription
 ```
 
 
-### Block updates from an email address
+### Block update from an email address
 ```http request
 POST /block
 ```
@@ -139,7 +139,7 @@ POST /block
 ```
 
 
-### Retrieve all email addresses which can receive updates from an email address
+### Retrieve all email addresses which can receive update from an email address
 ```http request
 GET /friend/emails-receive-update
 ```
